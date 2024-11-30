@@ -60,3 +60,150 @@ def zhvi_metro_mean():
 			# Convert to list of dictionaries for JSON response
 			result = [dict(zip(col_names, row)) for row in rows]
 			return result
+
+@app.get("/get_zhvi_zori_byMetro/<Metro>")
+def get_zhvi_zori_byMetro(metro):
+	with connection:
+		with connection.cursor() as cursor:
+			query = '''
+                SELECT * 
+                FROM (
+                    SELECT 
+                        zori.RegionID, 
+                        zori.date, 
+                        zhvi.value AS ZHVI, 
+                        zori.value AS ZORI 
+                    FROM 
+                        zori_processed_by_zori_city_cleaned zori 
+                    JOIN 
+                        zhvi_processed_by_zhvi_city_cleaned zhvi 
+                    ON 
+                        zori.RegionID = zhvi.RegionID 
+                        AND zori.date = zhvi.date 
+                    ORDER BY date ASC
+                ) AS t 
+                JOIN 
+                    "Regions_cleaned" rc 
+                ON 
+                    rc.RegionID = t.RegionID 
+                WHERE regionname = %s
+                ORDER BY date ASC
+            '''
+			cursor.execute(query, (city,))
+			rows = cursor.fetchall()
+			# Get column names
+			col_names = [desc[0] for desc in cursor.description]
+			# Convert to list of dictionaries for JSON response
+			result = [dict(zip(col_names, row)) for row in rows]
+			return result
+
+@app.get("/get_zhvi_zori_byCity/<city>")
+def get_zhvi_zori_byCity(city):
+	with connection:
+		with connection.cursor() as cursor:
+			query = '''
+                SELECT * 
+                FROM (
+                    SELECT 
+                        zori.RegionID, 
+                        zori.date, 
+                        zhvi.value AS ZHVI, 
+                        zori.value AS ZORI 
+                    FROM 
+                        zori_processed_by_zori_city_cleaned zori 
+                    JOIN 
+                        zhvi_processed_by_zhvi_city_cleaned zhvi 
+                    ON 
+                        zori.RegionID = zhvi.RegionID 
+                        AND zori.date = zhvi.date 
+                    ORDER BY date ASC
+                ) AS t 
+                JOIN 
+                    "Regions_cleaned" rc 
+                ON 
+                    rc.RegionID = t.RegionID 
+                WHERE regionname = %s
+                ORDER BY date ASC
+            '''
+			cursor.execute(query, (city,))
+			rows = cursor.fetchall()
+			# Get column names
+			col_names = [desc[0] for desc in cursor.description]
+			# Convert to list of dictionaries for JSON response
+			result = [dict(zip(col_names, row)) for row in rows]
+			return result
+
+@app.get("/get_zhvi_zori_byCounty/<county>")
+def get_zhvi_zori_byCounty(county):
+	print(f"Received county: {county}")
+	with connection:
+		with connection.cursor() as cursor:
+			query = '''
+                SELECT * 
+                FROM (
+                    SELECT 
+                        zori.RegionID, 
+                        zori.date, 
+                        zhvi.value AS ZHVI, 
+                        zori.value AS ZORI 
+                    FROM 
+                        zori_processed_by_zori_county_cleaned zori 
+                    JOIN 
+                        zhvi_processed_by_zhvi_county_cleaned zhvi 
+                    ON 
+                        zori.RegionID = zhvi.RegionID 
+                        AND zori.date = zhvi.date 
+                    ORDER BY date ASC
+                ) AS t 
+                JOIN 
+                    "Regions_cleaned" rc 
+                ON 
+                    rc.RegionID = t.RegionID 
+                WHERE regionname = %s
+                ORDER BY date ASC
+            '''
+			cursor.execute(query, (county,))
+			rows = cursor.fetchall()
+			# Get column names
+			col_names = [desc[0] for desc in cursor.description]
+			# Convert to list of dictionaries for JSON response
+			result = [dict(zip(col_names, row)) for row in rows]
+			return result
+
+@app.get("/get_zhvi_zori_byZIP/<zip_code>")
+def get_zhvi_zori_byZIP(zip_code):
+	print(f"Received county: {zip_code}")
+	with connection:
+		with connection.cursor() as cursor:
+			query = '''
+                SELECT * 
+                FROM (
+                    SELECT 
+                        zori.RegionID, 
+                        zori.date, 
+                        zhvi.value AS ZHVI, 
+                        zori.value AS ZORI 
+                    FROM 
+                        zori_processed_by_zori_zip_cleaned zori 
+                    JOIN 
+                        zhvi_processed_by_zhvi_zip_cleaned zhvi 
+                    ON 
+                        zori.RegionID = zhvi.RegionID 
+                        AND zori.date = zhvi.date 
+                    ORDER BY date ASC
+                ) AS t 
+                JOIN 
+                    "Regions_cleaned" rc 
+                ON 
+                    rc.RegionID = t.RegionID 
+                WHERE regionname = %s
+                ORDER BY date ASC
+            '''
+			cursor.execute(query, (zip_code,))
+			rows = cursor.fetchall()
+			# Get column names
+			col_names = [desc[0] for desc in cursor.description]
+			# Convert to list of dictionaries for JSON response
+			result = [dict(zip(col_names, row)) for row in rows]
+			return result
+
