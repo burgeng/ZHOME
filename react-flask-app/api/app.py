@@ -234,15 +234,15 @@ def get_zhvf():
 	if locality_type not in valid_locality_types:
 		return {"error": "Invalid locality type"}, 400
 
-	if locality_type == 'metro':
-		locality_type == 'msa'
-	print(locality_type)
 	table_name = "zhvf_by_zhvf_{}_cleaned".format(locality_type)
-	print(table_name)
+
+	if locality_type == 'metro':
+		locality_type = 'msa'
+
 	with connection:
 		with connection.cursor() as cursor:
 			query = f'''
-                SELECT basedate, regionname, regiontype, month, quarter, year
+                SELECT month, quarter, year
 				FROM {table_name} zhvf
 				JOIN "Regions_cleaned" rc ON zhvf.regionid = rc.regionid
 				WHERE regionname = '{locality_name}' AND regiontype = '{locality_type}'
@@ -255,6 +255,7 @@ def get_zhvf():
 			col_names = [desc[0] for desc in cursor.description]
 			# Convert to list of dictionaries for JSON response
 			result = [dict(zip(col_names, row)) for row in rows]
+			print(result)
 			return result
 
 @app.get("/get_zhvi_zori_byCity/<city>")

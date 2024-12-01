@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ZORIChart from './zorichart'; // Import the chart component
+import ZHVFChart from './zhvfchart'; // Import the chart component
 
 function ZHVF({ localityType }) {
   const [localityOptions, setLocalityOptions] = useState([]); // List of locality options
@@ -44,7 +44,7 @@ function ZHVF({ localityType }) {
     setError(null);
     setSelectedLocality(locality);
     setData(null); // Clear previous data
-    const route = `/get_zori?type=${localityType}&name=${encodeURIComponent(locality.regionname)}&state=${encodeURIComponent(locality.state)}`;
+    const route = `/get_zhvf?type=${localityType}&name=${encodeURIComponent(locality.regionname)}`;
     fetch(route)
       .then((response) => {
         if (!response.ok) {
@@ -124,8 +124,9 @@ function ZHVF({ localityType }) {
       {/* Display plot if data is available */}
       {selectedLocality && data && (
         <div style={{ marginTop: '20px' }}>
-          <h3>ZORI Trend for {selectedLocality.regionname}, {selectedLocality.state}:</h3>
-          <ZORIChart data={data} />
+          <h3>ZHVF Outlook for {selectedLocality.regionname}, {selectedLocality.state}:</h3>
+          <ZHVFChart data={data} />
+          <h4>*All timepoints based on basedate of 9/30/2024</h4>
         </div>
       )}
 
