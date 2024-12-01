@@ -46,4 +46,42 @@
   transition: background-color 0.3s ease, color 0.3s ease; /* Smooth hover effect */
 }
 
+/* Dropdown container */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+/* Dropdown menu (hidden by default) */
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  background-color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  min-width: 150px;
+  z-index: 1;
+  border-radius: 5px;
+  text-align: left;
+  padding: 10px 0;
+}
+
+/* Dropdown menu links */
+.dropdown-menu a {
+  color: #333;
+  padding: 8px 15px;
+  text-decoration: none;
+  display: block;
+}
+
+/* Hover effect for dropdown menu links */
+.dropdown-menu a:hover {
+  background-color: #f1f1f1;
+}
+
+/* Show dropdown menu on hover */
+.dropdown:hover .dropdown-menu {
+  transition: opacity ease-in-out .25s;
+  display: block;
+}
+
 

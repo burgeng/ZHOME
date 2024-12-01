@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 import os
 import psycopg2
 from dotenv import load_dotenv
@@ -24,11 +24,22 @@ def index():
 def db_conn_check():
 	return "Connected to {}".format(db_url)
 
-@app.get("/get_max_zhvi_by_metro")
-def zhvi_metro_max():
+@app.get("/get_localities_zhvi")
+def get_states_zhvi():
+	locality_type = request.args.get('type')
+	if locality_type.lower()=='metro':
+		locality_type='msa'
+	else:
+		locality_type = locality_type.lower()
+	print('Got type {}'.format(locality_type))
 	with connection:
 		with connection.cursor() as cursor:
-			cursor.execute('SELECT regionname, date, MAX(value) AS min_value FROM zhvi_processed_by_zhvi_metro_cleaned zhvi JOIN "Regions_cleaned" r ON zhvi.regionid=r.regionid GROUP BY regionname, date ORDER BY min_value DESC LIMIT 1')
+			query = '''
+                SELECT DISTINCT regionname
+				FROM "Regions_cleaned"
+				WHERE regiontype = %s
+            '''
+			cursor.execute(query, (locality_type,))
 			rows = cursor.fetchall()
 			# Get column names
 			col_names = [desc[0] for desc in cursor.description]
@@ -36,30 +47,8 @@ def zhvi_metro_max():
 			result = [dict(zip(col_names, row)) for row in rows]
 			return result
 
-
-@app.get("/get_min_zhvi_by_metro")
-def zhvi_metro_min():
-	with connection:
-		with connection.cursor() as cursor:
-			cursor.execute('SELECT regionname, date, MIN(value) AS min_value FROM zhvi_processed_by_zhvi_metro_cleaned zhvi JOIN "Regions_cleaned" r ON zhvi.regionid=r.regionid GROUP BY regionname, date ORDER BY min_value ASC LIMIT 1')
-			rows = cursor.fetchall()
-			# Get column names
-			col_names = [desc[0] for desc in cursor.description]
-			# Convert to list of dictionaries for JSON response
-			result = [dict(zip(col_names, row)) for row in rows]
-			return result
-
-@app.get("/get_mean_zhvi_by_metro")
-def zhvi_metro_mean():
-	with connection:
-		with connection.cursor() as cursor:
-			cursor.execute('SELECT regionname, AVG(value) AS avg_value FROM zhvi_processed_by_zhvi_metro_cleaned zhvi JOIN "Regions_cleaned" r ON zhvi.regionid=r.regionid GROUP BY regionname ORDER BY avg_value DESC LIMIT 50')
-			rows = cursor.fetchall()
-			# Get column names
-			col_names = [desc[0] for desc in cursor.description]
-			# Convert to list of dictionaries for JSON response
-			result = [dict(zip(col_names, row)) for row in rows]
-			return result
+## TODO: Modify ZHVI routes to include locality type and locality name paramerts, one route for each data type
+##			That way, it's easier from the frontend to handle user defined params.
 
 @app.get("/get_zhvi_byState/<state>")
 def get_zhvi_byState(state):
