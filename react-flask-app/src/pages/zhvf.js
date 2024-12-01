@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import ZHVIChart from './zhvichart'; // Import the chart component
+import ZORIChart from './zorichart'; // Import the chart component
 
-function ZHVI({ localityType }) {
+function ZHVF({ localityType }) {
   const [localityOptions, setLocalityOptions] = useState([]); // List of locality options
   const [selectedLocality, setSelectedLocality] = useState(null); // User-selected locality (object with regionname and state)
   const [error, setError] = useState(null); // Error handling
@@ -14,7 +14,7 @@ function ZHVI({ localityType }) {
   useEffect(() => {
     if (localityType) {
       setError(null);
-      const route = `/get_localities_zhvi?type=${localityType}&page=${currentPage}&limit=${optionsPerPage}`;
+      const route = `/get_localities_zhvf?type=${localityType}&page=${currentPage}&limit=${optionsPerPage}`;
       fetch(route)
         .then((response) => {
           if (!response.ok) {
@@ -44,7 +44,7 @@ function ZHVI({ localityType }) {
     setError(null);
     setSelectedLocality(locality);
     setData(null); // Clear previous data
-    const route = `/get_zhvi?type=${localityType}&name=${encodeURIComponent(locality.regionname)}&state=${encodeURIComponent(locality.state)}`;
+    const route = `/get_zori?type=${localityType}&name=${encodeURIComponent(locality.regionname)}&state=${encodeURIComponent(locality.state)}`;
     fetch(route)
       .then((response) => {
         if (!response.ok) {
@@ -58,7 +58,7 @@ function ZHVI({ localityType }) {
 
   return (
     <div>
-      <h2>Zillow Home Value Index (ZHVI)</h2>
+      <h2>Zillow Home Value Forecast (ZHVF)</h2>
 
       {/* Display the selected locality type */}
       {localityType && <p>You selected locality type: <strong>{localityType}</strong></p>}
@@ -124,8 +124,8 @@ function ZHVI({ localityType }) {
       {/* Display plot if data is available */}
       {selectedLocality && data && (
         <div style={{ marginTop: '20px' }}>
-          <h3>ZHVI Trend for {selectedLocality.regionname}, {selectedLocality.state}:</h3>
-          <ZHVIChart data={data} />
+          <h3>ZORI Trend for {selectedLocality.regionname}, {selectedLocality.state}:</h3>
+          <ZORIChart data={data} />
         </div>
       )}
 
@@ -137,4 +137,4 @@ function ZHVI({ localityType }) {
   );
 }
 
-export default ZHVI;
+export default ZHVF;
