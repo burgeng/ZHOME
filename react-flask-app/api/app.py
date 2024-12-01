@@ -61,6 +61,64 @@ def zhvi_metro_mean():
 			result = [dict(zip(col_names, row)) for row in rows]
 			return result
 
+@app.get("/get_zhvi_byState/<state>")
+def get_zhvi_byState(state):
+	with connection:
+		with connection.cursor() as cursor:
+			query = '''
+                SELECT *
+				FROM zhvi_processed_by_zhvi_state_cleaned zhvi
+				JOIN "Regions_cleaned" rc ON zhvi.regionid = rc.regionid
+				WHERE regionname = %s
+				ORDER BY date ASC
+            '''
+			cursor.execute(query, (state,))
+			rows = cursor.fetchall()
+			# Get column names
+			col_names = [desc[0] for desc in cursor.description]
+			# Convert to list of dictionaries for JSON response
+			result = [dict(zip(col_names, row)) for row in rows]
+			return result
+
+@app.get("/get_zhvi_byCounty/<county>")
+def get_zhvi_byCounty(county):
+	with connection:
+		with connection.cursor() as cursor:
+			query = '''
+                SELECT *
+				FROM zhvi_processed_by_zhvi_county_cleaned zhvi
+				JOIN "Regions_cleaned" rc ON zhvi.regionid = rc.regionid
+				WHERE regionname = %s
+				ORDER BY date ASC
+            '''
+			cursor.execute(query, (county,))
+			rows = cursor.fetchall()
+			# Get column names
+			col_names = [desc[0] for desc in cursor.description]
+			# Convert to list of dictionaries for JSON response
+			result = [dict(zip(col_names, row)) for row in rows]
+			return result
+
+@app.get("/get_zhvi_byMetro/<metro>")
+def get_zhvi_byMetro(metro):
+	with connection:
+		with connection.cursor() as cursor:
+			query = '''
+                SELECT *
+				FROM zhvi_processed_by_zhvi_metro_cleaned zhvi
+				JOIN "Regions_cleaned" rc ON zhvi.regionid = rc.regionid
+				WHERE regionname = %s
+				ORDER BY date ASC
+            '''
+			cursor.execute(query, (metro,))
+			rows = cursor.fetchall()
+			# Get column names
+			col_names = [desc[0] for desc in cursor.description]
+			# Convert to list of dictionaries for JSON response
+			result = [dict(zip(col_names, row)) for row in rows]
+			return result
+
+
 @app.get("/get_zhvi_zori_byMetro/<Metro>")
 def get_zhvi_zori_byMetro(metro):
 	with connection:
