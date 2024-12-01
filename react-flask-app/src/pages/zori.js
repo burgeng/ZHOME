@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-function ZHVI({ localityType }) {
+function ZORI({ localityType }) {
   const [localityName, setLocalityName] = useState(''); // User input for locality name
   const [submittedLocality, setSubmittedLocality] = useState(''); // Stores the submitted locality
   const [error, setError] = useState(null); // Error handling
@@ -23,7 +23,7 @@ function ZHVI({ localityType }) {
 
     // Simulate fetching data for the entered locality
     //const route = `get_localities_zhvi?type=${localityType}`;
-    const route = `get_zhvi?type=${localityType}&name='${localityName}'`;
+    const route = `get_zori?type=${localityType}&name='${localityName}'`;
     fetch(route)
       .then((response) => {
         if (!response.ok) {
@@ -37,7 +37,7 @@ function ZHVI({ localityType }) {
 
   return (
     <div>
-      <h2>Zillow Home Value Index (ZHVI)</h2>
+      <h2>Zillow Observed Rent Index (ZORI)</h2>
 
       {/* Display the selected locality type */}
       {localityType && <p>You selected locality type: <strong>{localityType}</strong></p>}
@@ -89,4 +89,4 @@ function ZHVI({ localityType }) {
   );
 }
 
-export default ZHVI;
+export default ZORI;
