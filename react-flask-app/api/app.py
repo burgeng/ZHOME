@@ -32,26 +32,115 @@ def db_conn_check():
 
 @app.get("/get_localities_zhvi")
 def get_states_zhvi():
-	locality_type = request.args.get('type')
-	if locality_type.lower()=='metro':
-		locality_type='msa'
-	else:
-		locality_type = locality_type.lower()
-	print('Got type {}'.format(locality_type))
-	with connection:
+	locality_type = request.args.get("type")
+	page = int(request.args.get("page", 1))  # Default to page 1
+	limit = int(request.args.get("limit", 10))  # Default to 10 records per page
+	offset = (page - 1) * limit  # Calculate OFFSET
+
+	table_name = "zhvi_processed_by_zhvi_{}_cleaned".format(locality_type)
+
+	if locality_type == "metro":
+		locality_type = "msa"
+
+	try:
 		with connection.cursor() as cursor:
-			query = '''
-                SELECT DISTINCT regionname
-				FROM "Regions_cleaned"
+			if locality_type == 'state':
+				query = f'''
+				SELECT DISTINCT regionname, regionname
+				FROM {table_name} zhvi 
+					JOIN "Regions_cleaned" rc ON zhvi.regionid = rc.regionid 
 				WHERE regiontype = %s
-            '''
-			cursor.execute(query, (locality_type,))
+				LIMIT %s OFFSET %s
+				'''
+			else:
+				query = f'''
+				SELECT DISTINCT regionname, statename
+				FROM {table_name} zhvi 
+					JOIN "Regions_cleaned" rc ON zhvi.regionid = rc.regionid 
+				WHERE regiontype = %s
+				LIMIT %s OFFSET %s
+				'''
+			cursor.execute(query, (locality_type, limit, offset))
 			rows = cursor.fetchall()
-			# Get column names
-			col_names = [desc[0] for desc in cursor.description]
-			# Convert to list of dictionaries for JSON response
-			result = [dict(zip(col_names, row)) for row in rows]
-			return result
+
+			cursor.execute(f'SELECT COUNT(DISTINCT regionid) FROM {table_name}')
+			total_count = cursor.fetchone()[0]
+			response = {
+			"options": [{"regionname": row[0], "state": row[1]} for row in rows],  # Adjust based on your table structure
+			"totalPages": (total_count + limit - 1) // limit  # Calculate total pages
+	 		}
+			return response
+	except Exception as e:
+		return {"error": str(e)}, 500
+
+@app.get("/get_localities_zori")
+def get_states_zori():
+	locality_type = request.args.get("type")
+	page = int(request.args.get("page", 1))  # Default to page 1
+	limit = int(request.args.get("limit", 10))  # Default to 10 records per page
+	offset = (page - 1) * limit  # Calculate OFFSET
+
+	table_name = "zori_processed_by_zori_{}_cleaned".format(locality_type)
+
+	if locality_type == "metro":
+		locality_type = "msa"
+
+	try:
+		with connection.cursor() as cursor:
+			query = f'''
+			SELECT DISTINCT regionname, statename
+			FROM {table_name} zori 
+				JOIN "Regions_cleaned" rc ON zori.regionid = rc.regionid 
+			WHERE regiontype = %s
+			LIMIT %s OFFSET %s
+			'''
+			cursor.execute(query, (locality_type, limit, offset))
+			rows = cursor.fetchall()
+
+			cursor.execute(f'SELECT COUNT(DISTINCT regionid) FROM {table_name}')
+			total_count = cursor.fetchone()[0]
+			response = {
+			"options": [{"regionname": row[0], "state": row[1]} for row in rows],  # Adjust based on your table structure
+			"totalPages": (total_count + limit - 1) // limit  # Calculate total pages
+	 		}
+			return response
+	except Exception as e:
+		return {"error": str(e)}, 500
+
+@app.get("/get_localities_zhvf")
+def get_states_zhvf():
+	locality_type = request.args.get("type")
+	page = int(request.args.get("page", 1))  # Default to page 1
+	limit = int(request.args.get("limit", 10))  # Default to 10 records per page
+	offset = (page - 1) * limit  # Calculate OFFSET
+
+	table_name = "zhvf_by_zhvf_{}_cleaned".format(locality_type)
+
+	if locality_type == "metro":
+		locality_type = "msa"
+
+	try:
+		with connection.cursor() as cursor:
+			query = f'''
+			SELECT DISTINCT regionname, statename
+			FROM {table_name} zhvf 
+				JOIN "Regions_cleaned" rc ON zhvf.regionid = rc.regionid 
+			WHERE regiontype = %s
+			LIMIT %s OFFSET %s
+			'''
+			cursor.execute(query, (locality_type, limit, offset))
+			rows = cursor.fetchall()
+
+			cursor.execute(f'SELECT COUNT(DISTINCT regionid) FROM {table_name}')
+			total_count = cursor.fetchone()[0]
+			response = {
+			"options": [{"regionname": row[0], "state": row[1]} for row in rows],  # Adjust based on your table structure
+			"totalPages": (total_count + limit - 1) // limit  # Calculate total pages
+	 		}
+			return response
+	except Exception as e:
+		return {"error": str(e)}, 500
+
 
 #####
 # Get ZHVI data by locality type and name
@@ -61,22 +150,36 @@ def get_states_zhvi():
 def get_zhvi():
 	locality_type = request.args.get('type')
 	locality_name = request.args.get('name')
+	state_name = request.args.get('state')
 	
 	valid_locality_types = ['state', 'county', 'metro', 'city', 'zip', 'neighborhood']
 	if locality_type not in valid_locality_types:
 		return {"error": "Invalid locality type"}, 400
 
+	if locality_type == 'metro':
+		locality_type == 'msa'
+
 	table_name = "zhvi_processed_by_zhvi_{}_cleaned".format(locality_type)
 	print(table_name)
 	with connection:
 		with connection.cursor() as cursor:
-			query = f'''
+			print(locality_type)
+			if locality_type == 'state': # In this case, the statename columns are null
+				query = f'''
                 SELECT date, regionname, regiontype, value AS ZHVI
 				FROM {table_name} zhvi
 				JOIN "Regions_cleaned" rc ON zhvi.regionid = rc.regionid
-				WHERE regionname = {locality_name}
+				WHERE regionname = '{locality_name}' AND regiontype = '{locality_type}'
 				ORDER BY date ASC
-            '''
+           		'''
+			else:
+				query = f'''
+	                SELECT date, regionname, regiontype, value AS ZHVI
+					FROM {table_name} zhvi
+					JOIN "Regions_cleaned" rc ON zhvi.regionid = rc.regionid
+					WHERE regionname = '{locality_name}' AND regiontype = '{locality_type}' AND rc.statename = '{state_name}'
+					ORDER BY date ASC
+	            '''
 			print(query)
 			cursor.execute(query)
 			rows = cursor.fetchall()
@@ -99,6 +202,9 @@ def get_zori():
 	if locality_type not in valid_locality_types:
 		return {"error": "Invalid locality type"}, 400
 
+	if locality_type == 'metro':
+		locality_type == 'msa'
+	print(locality_type)
 	table_name = "zori_processed_by_zori_{}_cleaned".format(locality_type)
 	print(table_name)
 	with connection:
@@ -107,8 +213,40 @@ def get_zori():
                 SELECT date, regionname, regiontype, value AS ZORI
 				FROM {table_name} zori
 				JOIN "Regions_cleaned" rc ON zori.regionid = rc.regionid
-				WHERE regionname = {locality_name}
+				WHERE regionname = '{locality_name}' AND regiontype = '{locality_type}'
 				ORDER BY date ASC
+            '''
+			print(query)
+			cursor.execute(query)
+			rows = cursor.fetchall()
+			# Get column names
+			col_names = [desc[0] for desc in cursor.description]
+			# Convert to list of dictionaries for JSON response
+			result = [dict(zip(col_names, row)) for row in rows]
+			return result
+
+@app.get("/get_zhvf")
+def get_zhvf():
+	locality_type = request.args.get('type')
+	locality_name = request.args.get('name')
+	
+	valid_locality_types = ['state', 'county', 'metro', 'city', 'zip', 'neighborhood']
+	if locality_type not in valid_locality_types:
+		return {"error": "Invalid locality type"}, 400
+
+	if locality_type == 'metro':
+		locality_type == 'msa'
+	print(locality_type)
+	table_name = "zhvf_by_zhvf_{}_cleaned".format(locality_type)
+	print(table_name)
+	with connection:
+		with connection.cursor() as cursor:
+			query = f'''
+                SELECT basedate, regionname, regiontype, month, quarter, year
+				FROM {table_name} zhvf
+				JOIN "Regions_cleaned" rc ON zhvf.regionid = rc.regionid
+				WHERE regionname = '{locality_name}' AND regiontype = '{locality_type}'
+				ORDER BY basedate ASC
             '''
 			print(query)
 			cursor.execute(query)
