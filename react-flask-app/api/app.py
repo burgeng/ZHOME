@@ -51,6 +51,7 @@ def get_states_zhvi():
 				FROM {table_name} zhvi 
 					JOIN "Regions_cleaned" rc ON zhvi.regionid = rc.regionid 
 				WHERE regiontype = %s
+				ORDER BY regionname ASC
 				LIMIT %s OFFSET %s
 				'''
 			else:
@@ -59,6 +60,7 @@ def get_states_zhvi():
 				FROM {table_name} zhvi 
 					JOIN "Regions_cleaned" rc ON zhvi.regionid = rc.regionid 
 				WHERE regiontype = %s
+				ORDER BY regionname ASC
 				LIMIT %s OFFSET %s
 				'''
 			cursor.execute(query, (locality_type, limit, offset))
@@ -93,6 +95,7 @@ def get_states_zori():
 			FROM {table_name} zori 
 				JOIN "Regions_cleaned" rc ON zori.regionid = rc.regionid 
 			WHERE regiontype = %s
+			ORDER BY regionname ASC
 			LIMIT %s OFFSET %s
 			'''
 			cursor.execute(query, (locality_type, limit, offset))
@@ -127,6 +130,7 @@ def get_states_zhvf():
 			FROM {table_name} zhvf 
 				JOIN "Regions_cleaned" rc ON zhvf.regionid = rc.regionid 
 			WHERE regiontype = %s
+			ORDER BY regionname ASC
 			LIMIT %s OFFSET %s
 			'''
 			cursor.execute(query, (locality_type, limit, offset))
@@ -162,6 +166,7 @@ def get_states_mhi():
 				FROM mhi_processed_by_metro_cleaned mhi 
 					JOIN "Regions_cleaned" rc ON mhi.regionid = rc.regionid 
 				WHERE regiontype = %s
+				ORDER BY regionname ASC
 				LIMIT %s OFFSET %s
 				'''
 				cursor.execute(query, (locality_type, limit, offset))
@@ -174,7 +179,8 @@ def get_states_mhi():
 				query = f'''
 				SELECT DISTINCT statename, statename
 				FROM mhi_processed_by_metro_cleaned mhi
-					JOIN "Regions_cleaned" rc ON mhi.regionid = rc.regionid 
+					JOIN "Regions_cleaned" rc ON mhi.regionid = rc.regionid
+				ORDER BY statename ASC
 				LIMIT %s OFFSET %s
 				'''
 				cursor.execute(query, (limit, offset))
