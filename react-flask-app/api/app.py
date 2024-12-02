@@ -30,6 +30,7 @@ def db_conn_check():
 		status = 'Dead'
 	return "DB URL: {} ; Status: {}".format(db_url, status)
 
+########## Accessory routes for frontend lists ##########
 @app.get("/get_localities_zhvi")
 def get_states_zhvi():
 	locality_type = request.args.get("type")
@@ -141,6 +142,53 @@ def get_states_zhvf():
 	except Exception as e:
 		return {"error": str(e)}, 500
 
+@app.get("/get_localities_mhi")
+def get_states_mhi():
+	locality_type = request.args.get("type")
+	page = int(request.args.get("page", 1))  # Default to page 1
+	limit = int(request.args.get("limit", 10))  # Default to 10 records per page
+	offset = (page - 1) * limit  # Calculate OFFSET
+
+	if locality_type == "metro":
+		locality_type = "msa"
+	rows=[]
+	total_count=0
+	try:
+		with connection.cursor() as cursor:
+			# We can't just access different tables here, so we will have to have different queries
+			if locality_type == 'msa':
+				query = f'''
+				SELECT DISTINCT regionname, statename
+				FROM mhi_processed_by_metro_cleaned mhi 
+					JOIN "Regions_cleaned" rc ON mhi.regionid = rc.regionid 
+				WHERE regiontype = %s
+				LIMIT %s OFFSET %s
+				'''
+				cursor.execute(query, (locality_type, limit, offset))
+				rows = cursor.fetchall()
+				print(rows)
+				cursor.execute(f'SELECT COUNT(DISTINCT regionid) FROM mhi_processed_by_metro_cleaned')
+				total_count = cursor.fetchone()[0]
+
+			elif locality_type == 'state':
+				query = f'''
+				SELECT DISTINCT statename, statename
+				FROM mhi_processed_by_metro_cleaned mhi
+					JOIN "Regions_cleaned" rc ON mhi.regionid = rc.regionid 
+				LIMIT %s OFFSET %s
+				'''
+				cursor.execute(query, (limit, offset))
+				rows = cursor.fetchall()
+				print(rows)
+				cursor.execute(f'SELECT COUNT(DISTINCT statename) FROM mhi_processed_by_metro_cleaned mhi JOIN "Regions_cleaned" rc ON mhi.regionid = rc.regionid ')
+				total_count = cursor.fetchone()[0]
+			response = {
+			"options": [{"regionname": row[0], "state": row[1]} for row in rows],  # Adjust based on your table structure
+			"totalPages": (total_count + limit - 1) // limit  # Calculate total pages
+	 		}
+		return response
+	except Exception as e:
+		return {"error": str(e)}, 500
 
 #####
 # Get ZHVI data by locality type and name
@@ -225,6 +273,10 @@ def get_zori():
 			result = [dict(zip(col_names, row)) for row in rows]
 			return result
 
+#####
+# Get ZHVF data by locality type and name
+# Example URL: localhost:5000/get_zhvf?type=state&name=%27Pennsylvania%27 will get ZHVF data for Pennsylvania
+#####
 @app.get("/get_zhvf")
 def get_zhvf():
 	locality_type = request.args.get('type')
@@ -256,6 +308,51 @@ def get_zhvf():
 			# Convert to list of dictionaries for JSON response
 			result = [dict(zip(col_names, row)) for row in rows]
 			print(result)
+			return result
+
+#####
+# Get MHI data by locality type and name
+# Example URL: localhost:5000/get_zori?type=state&name=%27Pennsylvania%27 will get ZORI data for Pennsylvania
+#####
+@app.get("/get_mhi")
+def get_mhi():
+	locality_type = request.args.get('type')
+	locality_name = request.args.get('name')
+	
+	valid_locality_types = ['state', 'metro']
+	if locality_type not in valid_locality_types:
+		return {"error": "Invalid locality type"}, 400
+
+	if locality_type == 'metro':
+		locality_type == 'msa'
+
+	with connection:
+		with connection.cursor() as cursor:
+			if locality_type == 'metro':
+				query = f'''
+					SELECT rc.regionname, date, value AS mhi
+					FROM mhi_processed_by_metro_cleaned mhi
+					JOIN "Regions_cleaned" rc ON mhi.regionid = rc.regionid
+					WHERE regionname= '{locality_name}'
+					ORDER BY date ASC
+	            '''
+	        # Since there is only a metro table for MHI, we can estimate the by-State values by averaging values for all metros in a state using a GROUP BY clause with AVG()
+			elif locality_type == 'state':
+				query = f'''
+					SELECT statename, date, AVG(CAST(value AS float)) AS mhi
+					FROM mhi_processed_by_metro_cleaned mhi
+					JOIN "Regions_cleaned" rc ON mhi.regionid = rc.regionid
+					WHERE statename = '{locality_name}'
+					GROUP BY statename, date
+					ORDER BY date ASC
+	            '''
+			print(query)
+			cursor.execute(query)
+			rows = cursor.fetchall()
+			# Get column names
+			col_names = [desc[0] for desc in cursor.description]
+			# Convert to list of dictionaries for JSON response
+			result = [dict(zip(col_names, row)) for row in rows]
 			return result
 
 @app.get("/get_zhvi_zori_byCity/<city>")
