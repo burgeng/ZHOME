@@ -210,11 +210,11 @@ def get_zhvi():
 	if locality_type not in valid_locality_types:
 		return {"error": "Invalid locality type"}, 400
 
-	if locality_type == 'metro':
-		locality_type == 'msa'
-
 	table_name = "zhvi_processed_by_zhvi_{}_cleaned".format(locality_type)
-	print(table_name)
+
+	if locality_type == 'metro':
+		locality_type = 'msa'
+
 	with connection:
 		with connection.cursor() as cursor:
 			print(locality_type)
@@ -256,10 +256,11 @@ def get_zori():
 	if locality_type not in valid_locality_types:
 		return {"error": "Invalid locality type"}, 400
 
-	if locality_type == 'metro':
-		locality_type == 'msa'
-	print(locality_type)
 	table_name = "zori_processed_by_zori_{}_cleaned".format(locality_type)
+
+	if locality_type == 'metro':
+		locality_type = 'msa'
+
 	print(table_name)
 	with connection:
 		with connection.cursor() as cursor:
