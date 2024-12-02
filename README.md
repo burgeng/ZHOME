@@ -7,5 +7,5 @@ To run the app locally, follow these steps after cloning the repository to your 
 1. Navigate to the app directory - `cd react-flask-app`
 2. Start the backend (Flask) - `yarn start-api` \
 a. Check the connection to the database by visiting `localhost:5000/checkdbconnection`
-3. Start the frontend (ReachJS) - `yarn start`
+3. Start the frontend (ReactJS) - `yarn start`
 4. Navigate to app in browser at `localhost:3000/`
