@@ -127,6 +127,7 @@ function HomeSales({ localityType }) {
         <div style={{ marginTop: '20px' }}>
           <h3>Total Count of Finalized Sales for {selectedLocality.regionname}, {selectedLocality.state}:</h3>
           <HomeSalesChart data={data} />
+          <h4>*The by-state data has been estimated by averaging the MHI for all metros within a state.</h4>
         </div>
       )}
 
