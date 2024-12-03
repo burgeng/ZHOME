@@ -68,7 +68,7 @@ function ZHVF({ localityType }) {
 
       {/* No options available */}
       {localityType && localityOptions.length === 0 && !error && (
-        <p>No options available for {localityType}.</p>
+        <p>Fetching {localityType} options...</p>
       )}
 
       {/* Display table with clickable options */}
@@ -124,7 +124,7 @@ function ZHVF({ localityType }) {
       {/* Display plot if data is available */}
       {selectedLocality && data && (
         <div style={{ marginTop: '20px' }}>
-          <h3>ZHVF Outlook for {selectedLocality.regionname}, {selectedLocality.state}:</h3>
+          <h3>ZHVF for {selectedLocality.regionname}, {selectedLocality.state}:</h3>
           <ZHVFChart data={data} />
           <h4>*All timepoints based on basedate of 9/30/2024</h4>
         </div>

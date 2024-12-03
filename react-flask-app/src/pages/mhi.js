@@ -68,9 +68,9 @@ function MHI({ localityType }) {
 
       {/* No options available */}
       {localityType && localityOptions.length === 0 && !error && (
-        <p>No options available for {localityType}.</p>
+        <p>Fetching {localityType} options...</p>
       )}
-
+      
       {/* Display table with clickable options */}
       {localityType && localityOptions.length > 0 && (
         <div style={{ marginTop: '20px' }}>
@@ -126,6 +126,7 @@ function MHI({ localityType }) {
         <div style={{ marginTop: '20px' }}>
           <h3>MHI for {selectedLocality.regionname}, {selectedLocality.state}:</h3>
           <MHIChart data={data} />
+          <h4>*This data has been estimated by averaging the MHI for all metros within a state.</h4>
         </div>
       )}
 

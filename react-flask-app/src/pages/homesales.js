@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import ZORIChart from './zorichart'; // Import the chart component
+import HomeSalesChart from './homesaleschart'; // Import the chart component
 
-function ZORI({ localityType }) {
+function HomeSales({ localityType }) {
   const [localityOptions, setLocalityOptions] = useState([]); // List of locality options
   const [selectedLocality, setSelectedLocality] = useState(null); // User-selected locality (object with regionname and state)
   const [error, setError] = useState(null); // Error handling
@@ -14,10 +14,11 @@ function ZORI({ localityType }) {
   useEffect(() => {
     if (localityType) {
       setError(null);
-      const route = `/get_localities_zori?type=${localityType}&page=${currentPage}&limit=${optionsPerPage}`;
+      const route = `/get_localities_sales?type=${localityType}&page=${currentPage}&limit=${optionsPerPage}`;
       fetch(route)
         .then((response) => {
           if (!response.ok) {
+            console.log(response)
             throw new Error(`Failed to fetch options for ${localityType}`);
           }
           return response.json();
@@ -44,7 +45,7 @@ function ZORI({ localityType }) {
     setError(null);
     setSelectedLocality(locality);
     setData(null); // Clear previous data
-    const route = `/get_zori?type=${localityType}&name=${encodeURIComponent(locality.regionname)}&state=${encodeURIComponent(locality.state)}`;
+    const route = `/get_homesales?type=${localityType}&name=${encodeURIComponent(locality.regionname)}&state=${encodeURIComponent(locality.state)}`;
     fetch(route)
       .then((response) => {
         if (!response.ok) {
@@ -58,7 +59,7 @@ function ZORI({ localityType }) {
 
   return (
     <div>
-      <h2>Zillow Observed Rent Index (ZORI)</h2>
+      <h2>Total Home Sales</h2>
 
       {/* Display the selected locality type */}
       {localityType && <p>Locality type: <strong>{localityType}</strong></p>}
@@ -70,7 +71,7 @@ function ZORI({ localityType }) {
       {localityType && localityOptions.length === 0 && !error && (
         <p>Fetching {localityType} options...</p>
       )}
-      
+
       {/* Display table with clickable options */}
       {localityType && localityOptions.length > 0 && (
         <div style={{ marginTop: '20px' }}>
@@ -124,8 +125,8 @@ function ZORI({ localityType }) {
       {/* Display plot if data is available */}
       {selectedLocality && data && (
         <div style={{ marginTop: '20px' }}>
-          <h3>ZORI Trend for {selectedLocality.regionname}, {selectedLocality.state}:</h3>
-          <ZORIChart data={data} />
+          <h3>Total Count of Finalized Sales for {selectedLocality.regionname}, {selectedLocality.state}:</h3>
+          <HomeSalesChart data={data} />
         </div>
       )}
 
@@ -137,4 +138,4 @@ function ZORI({ localityType }) {
   );
 }
 
-export default ZORI;
+export default HomeSales;

@@ -61,14 +61,14 @@ function ZHVI({ localityType }) {
       <h2>Zillow Home Value Index (ZHVI)</h2>
 
       {/* Display the selected locality type */}
-      {localityType && <p>You selected locality type: <strong>{localityType}</strong></p>}
+      {localityType && <p>Locality type: <strong>{localityType}</strong></p>}
 
       {/* Error message */}
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
       {/* No options available */}
       {localityType && localityOptions.length === 0 && !error && (
-        <p>No options available for {localityType}.</p>
+        <p>Fetching {localityType} options...</p>
       )}
 
       {/* Display table with clickable options */}
