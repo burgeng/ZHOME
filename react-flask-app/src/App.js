@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-//import Home from './pages/Home';
 import ZHVI from './pages/zhvi';
 import ZORI from './pages/zori';
 import ZHVF from './pages/zhvf';
-import MHI from './pages/mhi'
-//import NewConstruction from './pages/NewConstruction';
+import MHI from './pages/mhi';
+import HomeSales from './pages/homesales'
+import NewConstruction from './pages/newConstructionSales';
 //import Sales from './pages/Sales';
 import './App.css';
 function App() {
@@ -52,25 +52,26 @@ function App() {
               </div>
             </div>
             <div className="dropdown">
-              <Link to="/zhvi" className="nav-link">Market Heat Index (MHI)</Link>
+              <Link to="/mhi" className="nav-link">Market Heat Index (MHI)</Link>
               <div className="dropdown-menu">
-                {/* Pass in value of selectedLocalityType */}
                 <Link to="/mhi" onClick={() => handleLocalityTypeSelect('state')}>State</Link>
                 <Link to="/mhi" onClick={() => handleLocalityTypeSelect('metro')}>Metro</Link>
               </div>
             </div>
             <div className="dropdown">
-              <Link to="/zhvi" className="nav-link">Home Sales</Link>
+              <Link to="/homesales" className="nav-link">Home Sales</Link>
               <div className="dropdown-menu">
                 {/* Pass in value of selectedLocalityType */}
-                <Link to="/zhvi" onClick={() => handleLocalityTypeSelect('metro')}>Metro</Link>
+                <Link to="/homesales" onClick={() => handleLocalityTypeSelect('state')}>State</Link>
+                <Link to="/homesales" onClick={() => handleLocalityTypeSelect('metro')}>Metro</Link>
               </div>
             </div>
             <div className="dropdown">
-              <Link to="/zhvi" className="nav-link">New Construction Sales</Link>
+              <Link to="/newConstructionSales" className="nav-link">New Construction Sales</Link>
               <div className="dropdown-menu">
                 {/* Pass in value of selectedLocalityType */}
-                <Link to="/zhvi" onClick={() => handleLocalityTypeSelect('metro')}>Metro</Link>
+                <Link to="/newConstructionSales" onClick={() => handleLocalityTypeSelect('state')}>State</Link>
+                <Link to="/newConstructionSales" onClick={() => handleLocalityTypeSelect('metro')}>Metro</Link>
               </div>
             </div>
             <div className="dropdown">
@@ -90,6 +91,8 @@ function App() {
             <Route path="/zori" element={<ZORI localityType={selectedLocalityType} />} />
             <Route path="/zhvf" element={<ZHVF localityType={selectedLocalityType} />} />
             <Route path="/mhi" element={<MHI localityType={selectedLocalityType} />} />
+            <Route path="/homesales" element={<HomeSales localityType={selectedLocalityType} />} />
+            <Route path="/newConstructionSales" element={<NewConstruction localityType={selectedLocalityType} />} />
           </Routes>
         </main>
       </div>

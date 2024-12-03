@@ -238,6 +238,48 @@ def get_states_sales():
 	except Exception as e:
 		return {"error": str(e)}, 500
 
+@app.get("/get_localities_newConstructionSales")
+def get_states_newConstructionSales():
+	locality_type = request.args.get("type")
+	page = int(request.args.get("page", 1))  # Default to page 1
+	limit = int(request.args.get("limit", 10))  # Default to 10 records per page
+	offset = (page - 1) * limit  # Calculate OFFSET
+
+	if locality_type == "metro":
+		locality_type = "msa"
+
+	try:
+		with connection.cursor() as cursor:
+			if locality_type == 'msa':
+				query = f'''
+				SELECT DISTINCT regionname, statename
+				FROM newconsales_processed_by_metro_cleaned sales 
+					JOIN "Regions_cleaned" rc ON sales.regionid = rc.regionid 
+				WHERE regiontype = '{locality_type}'
+				ORDER BY regionname ASC
+				LIMIT {limit} OFFSET {offset}
+				'''
+			elif locality_type == 'state':
+				query = f'''
+				SELECT DISTINCT statename, statename
+				FROM newconsales_processed_by_metro_cleaned sales
+					JOIN "Regions_cleaned" rc ON sales.regionid = rc.regionid
+				ORDER BY statename ASC
+				LIMIT {limit} OFFSET {offset}
+				'''
+			cursor.execute(query)
+			rows = cursor.fetchall()
+
+			cursor.execute('SELECT COUNT(DISTINCT regionid) FROM newconsales_processed_by_metro_cleaned')
+			total_count = cursor.fetchone()[0]
+			response = {
+			"options": [{"regionname": row[0], "state": row[1]} for row in rows],  # Adjust based on your table structure
+			"totalPages": (total_count + limit - 1) // limit  # Calculate total pages
+	 		}
+			return response
+	except Exception as e:
+		return {"error": str(e)}, 500
+
 
 #####
 # Get ZHVI data by locality type and name
@@ -450,109 +492,43 @@ def get_homesales():
 			result = [dict(zip(col_names, row)) for row in rows]
 			return result
 
-@app.get("/get_zhvi_zori_byCity/<city>")
-def get_zhvi_zori_byCity(city):
-	with connection:
-		with connection.cursor() as cursor:
-			query = '''
-                SELECT * 
-                FROM (
-                    SELECT 
-                        zori.RegionID, 
-                        zori.date, 
-                        zhvi.value AS ZHVI, 
-                        zori.value AS ZORI 
-                    FROM 
-                        zori_processed_by_zori_city_cleaned zori 
-                    JOIN 
-                        zhvi_processed_by_zhvi_city_cleaned zhvi 
-                    ON 
-                        zori.RegionID = zhvi.RegionID 
-                        AND zori.date = zhvi.date 
-                    ORDER BY date ASC
-                ) AS t 
-                JOIN 
-                    "Regions_cleaned" rc 
-                ON 
-                    rc.RegionID = t.RegionID 
-                WHERE regionname = %s
-                ORDER BY date ASC
-            '''
-			cursor.execute(query, (city,))
-			rows = cursor.fetchall()
-			# Get column names
-			col_names = [desc[0] for desc in cursor.description]
-			# Convert to list of dictionaries for JSON response
-			result = [dict(zip(col_names, row)) for row in rows]
-			return result
+#####
+# Get new construction sale count data by locality type and name
+#####
+@app.get("/get_newConstructionSales")
+def get_newConstructionSales():
+	locality_type = request.args.get('type')
+	locality_name = request.args.get('name')
+	
+	valid_locality_types = ['state', 'metro']
+	if locality_type not in valid_locality_types:
+		return {"error": "Invalid locality type"}, 400
 
-@app.get("/get_zhvi_zori_byCounty/<county>")
-def get_zhvi_zori_byCounty(county):
-	print(f"Received county: {county}")
-	with connection:
-		with connection.cursor() as cursor:
-			query = '''
-                SELECT * 
-                FROM (
-                    SELECT 
-                        zori.RegionID, 
-                        zori.date, 
-                        zhvi.value AS ZHVI, 
-                        zori.value AS ZORI 
-                    FROM 
-                        zori_processed_by_zori_county_cleaned zori 
-                    JOIN 
-                        zhvi_processed_by_zhvi_county_cleaned zhvi 
-                    ON 
-                        zori.RegionID = zhvi.RegionID 
-                        AND zori.date = zhvi.date 
-                    ORDER BY date ASC
-                ) AS t 
-                JOIN 
-                    "Regions_cleaned" rc 
-                ON 
-                    rc.RegionID = t.RegionID 
-                WHERE regionname = %s
-                ORDER BY date ASC
-            '''
-			cursor.execute(query, (county,))
-			rows = cursor.fetchall()
-			# Get column names
-			col_names = [desc[0] for desc in cursor.description]
-			# Convert to list of dictionaries for JSON response
-			result = [dict(zip(col_names, row)) for row in rows]
-			return result
+	if locality_type == 'metro':
+		locality_type == 'msa'
 
-@app.get("/get_zhvi_zori_byZIP/<zip_code>")
-def get_zhvi_zori_byZIP(zip_code):
-	print(f"Received county: {zip_code}")
 	with connection:
 		with connection.cursor() as cursor:
-			query = '''
-                SELECT * 
-                FROM (
-                    SELECT 
-                        zori.RegionID, 
-                        zori.date, 
-                        zhvi.value AS ZHVI, 
-                        zori.value AS ZORI 
-                    FROM 
-                        zori_processed_by_zori_zip_cleaned zori 
-                    JOIN 
-                        zhvi_processed_by_zhvi_zip_cleaned zhvi 
-                    ON 
-                        zori.RegionID = zhvi.RegionID 
-                        AND zori.date = zhvi.date 
-                    ORDER BY date ASC
-                ) AS t 
-                JOIN 
-                    "Regions_cleaned" rc 
-                ON 
-                    rc.RegionID = t.RegionID 
-                WHERE regionname = %s
-                ORDER BY date ASC
-            '''
-			cursor.execute(query, (zip_code,))
+			if locality_type == 'metro':
+				query = f'''
+					SELECT rc.regionname, date, value AS count
+					FROM newconsales_processed_by_metro_cleaned sales
+					JOIN "Regions_cleaned" rc ON sales.regionid = rc.regionid
+					WHERE regionname= '{locality_name}'
+					ORDER BY date ASC
+		         	'''
+		    # Similar to above, get average home sales for all metros in a state
+			elif locality_type == 'state':
+				query = f'''
+					SELECT statename, date, AVG(CAST(value AS float)) AS count
+					FROM newconsales_processed_by_metro_cleaned sales
+					JOIN "Regions_cleaned" rc ON sales.regionid = rc.regionid
+					WHERE statename = '{locality_name}'
+					GROUP BY statename, date
+					ORDER BY date ASC
+		         	'''
+			print(query)
+			cursor.execute(query)
 			rows = cursor.fetchall()
 			# Get column names
 			col_names = [desc[0] for desc in cursor.description]
