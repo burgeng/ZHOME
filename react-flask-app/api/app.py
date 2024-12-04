@@ -15,6 +15,7 @@ password = os.getenv("DATABASE_PASSWORD")
 
 db_url = "postgresql://{}:{}@{}:{}/{}".format(user, password, endpoint, port, dbname) # Construct DB URL string
 connection = psycopg2.connect(db_url) # Establish connection to the DB
+connection.autocommit = True
 
 @app.get("/") # Root
 def index():
