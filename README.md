@@ -1,4 +1,4 @@
-# Zillow Real Estate Data Dashboard
+# Zillow Housing Overview and Market Explorer (ZHOME)
 Easily explore housing market data from [Zillow](https://www.zillow.com/research/data/).
 
 ### Setup
