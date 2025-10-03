@@ -1,5 +1,5 @@
 from flask import Flask, request
-import sqlite3
+import mysql.connector
 import os
 import psycopg2
 from dotenv import load_dotenv
@@ -9,18 +9,28 @@ load_dotenv()
 app = Flask(__name__)
 
 endpoint = os.getenv("DATABASE_ENDPOINT")
-port = os.getenv("DATABASE_PORT")
+port = int(os.getenv("DATABASE_PORT"))
 dbname = os.getenv("DATABASE_NAME")
 user = os.getenv("DATABASE_USER")
 password = os.getenv("DATABASE_PASSWORD")
 
-db_path = os.getenv("SQLITE_DB_PATH", "../../preprocessing/data/housing.db")
-connection = sqlite3.connect(db_path, check_same_thread=False)
-connection.row_factory = sqlite3.Row  # Optional: rows as dict-like objects
+print(f"Endpoint: {endpoint}\nPort: {port}\nDatabase name: {dbname}\nUser: {user}")
+
+#db_path = os.getenv("SQLITE_DB_PATH", "../../preprocessing/data/housing.db")
+#connection = sqlite3.connect(db_path, check_same_thread=False)
+#connection.row_factory = sqlite3.Row  # Optional: rows as dict-like objects
+
+connection = mysql.connector.connect(
+    host=endpoint,
+    port=port,
+    user=user,
+    password=password,
+    database=dbname
+)
 
 @app.get("/") # Root
 def index():
-	return "ZREDD"
+    return "ZHOME: The Zillow Housing Overview and Market Explorer"
 
 @app.get("/checkdbconnection")
 def db_conn_check():
