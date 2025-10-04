@@ -236,7 +236,7 @@ def get_states_sales():
 		if locality_type == 'msa':
 			query = f'''
 			SELECT DISTINCT regionname, statename
-			FROM sales_processed_by_metro_cleaned sales 
+			FROM forsalelistings_processed_by_metro_cleaned sales 
 				JOIN Regions_cleaned rc ON sales.regionid = rc.regionid 
 			WHERE regiontype = '{locality_type}'
 			ORDER BY regionname ASC
@@ -245,7 +245,7 @@ def get_states_sales():
 		elif locality_type == 'state':
 			query = f'''
 			SELECT DISTINCT statename, statename
-			FROM sales_processed_by_metro_cleaned sales
+			FROM forsalelistings_processed_by_metro_cleaned sales
 				JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
 			ORDER BY statename ASC
 			LIMIT {limit} OFFSET {offset}
@@ -253,7 +253,7 @@ def get_states_sales():
 		cursor.execute(query)
 		rows = cursor.fetchall()
 
-		cursor.execute('SELECT COUNT(DISTINCT regionid) FROM sales_processed_by_metro_cleaned')
+		cursor.execute('SELECT COUNT(DISTINCT regionid) FROM forsalelistings_processed_by_metro_cleaned')
 		total_count = cursor.fetchone()[0]
 		response = {
 		"options": [{"regionname": row[0], "state": row[1]} for row in rows],  # Adjust based on your table structure
@@ -494,7 +494,7 @@ def get_homesales():
 	if locality_type == 'metro':
 		query = f'''
 			SELECT rc.regionname, date, value AS count
-			FROM sales_processed_by_metro_cleaned sales
+			FROM forsalelistings_processed_by_metro_cleaned sales
 			JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
 			WHERE regionname= '{locality_name}'
 			ORDER BY date ASC
@@ -503,7 +503,7 @@ def get_homesales():
 	elif locality_type == 'state':
 		query = f'''
 			SELECT statename, date, AVG(CAST(value AS float)) AS count
-			FROM sales_processed_by_metro_cleaned sales
+			FROM forsalelistings_processed_by_metro_cleaned sales
 			JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
 			WHERE statename = '{locality_name}'
 			GROUP BY statename, date
