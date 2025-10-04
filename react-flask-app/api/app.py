@@ -66,18 +66,18 @@ def get_states_zhvi():
             SELECT DISTINCT regionname, regionname
             FROM {table_name} zhvi
                 JOIN Regions_cleaned rc ON zhvi.regionid = rc.regionid
-            WHERE regiontype = ?
+            WHERE regiontype = %s
             ORDER BY regionname ASC
-            LIMIT ? OFFSET ?
+            LIMIT %s OFFSET %s
             """
         else:
             query = f"""
             SELECT DISTINCT regionname, statename
             FROM {table_name} zhvi
                 JOIN Regions_cleaned rc ON zhvi.regionid = rc.regionid
-            WHERE regiontype = ?
+            WHERE regiontype = %s
             ORDER BY regionname ASC
-            LIMIT ? OFFSET ?
+            LIMIT %s OFFSET %s
             """
 
         cur.execute(query, (locality_type, limit, offset))
@@ -113,7 +113,7 @@ def get_states_zori():
 		query = f'''
 		SELECT DISTINCT regionname, statename
 		FROM {table_name} zori 
-			JOIN "Regions_cleaned" rc ON zori.regionid = rc.regionid 
+			JOIN Regions_cleaned rc ON zori.regionid = rc.regionid 
 		WHERE regiontype = %s
 		ORDER BY regionname ASC
 		LIMIT %s OFFSET %s
@@ -149,7 +149,7 @@ def get_states_zhvf():
 		query = f'''
 		SELECT DISTINCT regionname, statename
 		FROM {table_name} zhvf 
-			JOIN "Regions_cleaned" rc ON zhvf.regionid = rc.regionid 
+			JOIN Regions_cleaned rc ON zhvf.regionid = rc.regionid 
 		WHERE regiontype = %s
 		ORDER BY regionname ASC
 		LIMIT %s OFFSET %s
@@ -187,7 +187,7 @@ def get_states_mhi():
 			query = f'''
 			SELECT DISTINCT regionname, statename
 			FROM mhi_processed_by_metro_cleaned mhi 
-				JOIN "Regions_cleaned" rc ON mhi.regionid = rc.regionid 
+				JOIN Regions_cleaned rc ON mhi.regionid = rc.regionid 
 			WHERE regiontype = %s
 			ORDER BY regionname ASC
 			LIMIT %s OFFSET %s
@@ -202,7 +202,7 @@ def get_states_mhi():
 			query = f'''
 			SELECT DISTINCT statename, statename
 			FROM mhi_processed_by_metro_cleaned mhi
-				JOIN "Regions_cleaned" rc ON mhi.regionid = rc.regionid
+				JOIN Regions_cleaned rc ON mhi.regionid = rc.regionid
 			ORDER BY statename ASC
 			LIMIT %s OFFSET %s
 			'''
@@ -237,7 +237,7 @@ def get_states_sales():
 			query = f'''
 			SELECT DISTINCT regionname, statename
 			FROM sales_processed_by_metro_cleaned sales 
-				JOIN "Regions_cleaned" rc ON sales.regionid = rc.regionid 
+				JOIN Regions_cleaned rc ON sales.regionid = rc.regionid 
 			WHERE regiontype = '{locality_type}'
 			ORDER BY regionname ASC
 			LIMIT {limit} OFFSET {offset}
@@ -246,7 +246,7 @@ def get_states_sales():
 			query = f'''
 			SELECT DISTINCT statename, statename
 			FROM sales_processed_by_metro_cleaned sales
-				JOIN "Regions_cleaned" rc ON sales.regionid = rc.regionid
+				JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
 			ORDER BY statename ASC
 			LIMIT {limit} OFFSET {offset}
 			'''
@@ -280,7 +280,7 @@ def get_states_newConstructionSales():
 			query = f'''
 			SELECT DISTINCT regionname, statename
 			FROM newconsales_processed_by_metro_cleaned sales 
-				JOIN "Regions_cleaned" rc ON sales.regionid = rc.regionid 
+				JOIN Regions_cleaned rc ON sales.regionid = rc.regionid 
 			WHERE regiontype = '{locality_type}'
 			ORDER BY regionname ASC
 			LIMIT {limit} OFFSET {offset}
@@ -289,7 +289,7 @@ def get_states_newConstructionSales():
 			query = f'''
 			SELECT DISTINCT statename, statename
 			FROM newconsales_processed_by_metro_cleaned sales
-				JOIN "Regions_cleaned" rc ON sales.regionid = rc.regionid
+				JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
 			ORDER BY statename ASC
 			LIMIT {limit} OFFSET {offset}
 			'''
@@ -333,7 +333,7 @@ def get_zhvi():
 		query = f'''
 		SELECT date, regionname, regiontype, value AS ZHVI
 		FROM {table_name} zhvi
-		JOIN "Regions_cleaned" rc ON zhvi.regionid = rc.regionid
+		JOIN Regions_cleaned rc ON zhvi.regionid = rc.regionid
 		WHERE regionname = '{locality_name}' AND regiontype = '{locality_type}'
 		ORDER BY date ASC
 		'''
@@ -341,7 +341,7 @@ def get_zhvi():
 		query = f'''
 			SELECT date, regionname, regiontype, value AS ZHVI
 			FROM {table_name} zhvi
-			JOIN "Regions_cleaned" rc ON zhvi.regionid = rc.regionid
+			JOIN Regions_cleaned rc ON zhvi.regionid = rc.regionid
 			WHERE regionname = '{locality_name}' AND regiontype = '{locality_type}' AND rc.statename = '{state_name}'
 			ORDER BY date ASC
 		'''
@@ -379,7 +379,7 @@ def get_zori():
 	query = f'''
 		SELECT date, regionname, regiontype, value AS ZORI
 		FROM {table_name} zori
-		JOIN "Regions_cleaned" rc ON zori.regionid = rc.regionid
+		JOIN Regions_cleaned rc ON zori.regionid = rc.regionid
 		WHERE regionname = '{locality_name}' AND regiontype = '{locality_type}' AND statename = '{state_name}'
 		ORDER BY date ASC
 	'''
@@ -415,7 +415,7 @@ def get_zhvf():
 	query = f'''
 		SELECT month, quarter, year
 		FROM {table_name} zhvf
-		JOIN "Regions_cleaned" rc ON zhvf.regionid = rc.regionid
+		JOIN Regions_cleaned rc ON zhvf.regionid = rc.regionid
 		WHERE regionname = '{locality_name}' AND regiontype = '{locality_type}'
 		ORDER BY basedate ASC
 	'''
@@ -451,7 +451,7 @@ def get_mhi():
 		query = f'''
 			SELECT rc.regionname, date, value AS mhi
 			FROM mhi_processed_by_metro_cleaned mhi
-			JOIN "Regions_cleaned" rc ON mhi.regionid = rc.regionid
+			JOIN Regions_cleaned rc ON mhi.regionid = rc.regionid
 			WHERE regionname= '{locality_name}'
 			ORDER BY date ASC
 		'''
@@ -460,7 +460,7 @@ def get_mhi():
 		query = f'''
 			SELECT statename, date, AVG(CAST(value AS float)) AS mhi
 			FROM mhi_processed_by_metro_cleaned mhi
-			JOIN "Regions_cleaned" rc ON mhi.regionid = rc.regionid
+			JOIN Regions_cleaned rc ON mhi.regionid = rc.regionid
 			WHERE statename = '{locality_name}'
 			GROUP BY statename, date
 			ORDER BY date ASC
@@ -495,7 +495,7 @@ def get_homesales():
 		query = f'''
 			SELECT rc.regionname, date, value AS count
 			FROM sales_processed_by_metro_cleaned sales
-			JOIN "Regions_cleaned" rc ON sales.regionid = rc.regionid
+			JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
 			WHERE regionname= '{locality_name}'
 			ORDER BY date ASC
 			'''
@@ -504,7 +504,7 @@ def get_homesales():
 		query = f'''
 			SELECT statename, date, AVG(CAST(value AS float)) AS count
 			FROM sales_processed_by_metro_cleaned sales
-			JOIN "Regions_cleaned" rc ON sales.regionid = rc.regionid
+			JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
 			WHERE statename = '{locality_name}'
 			GROUP BY statename, date
 			ORDER BY date ASC
@@ -539,7 +539,7 @@ def get_newConstructionSales():
 		query = f'''
 			SELECT rc.regionname, date, value AS count
 			FROM newconsales_processed_by_metro_cleaned sales
-			JOIN "Regions_cleaned" rc ON sales.regionid = rc.regionid
+			JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
 			WHERE regionname= '{locality_name}'
 			ORDER BY date ASC
 			'''
@@ -548,7 +548,7 @@ def get_newConstructionSales():
 		query = f'''
 			SELECT statename, date, AVG(CAST(value AS float)) AS count
 			FROM newconsales_processed_by_metro_cleaned sales
-			JOIN "Regions_cleaned" rc ON sales.regionid = rc.regionid
+			JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
 			WHERE statename = '{locality_name}'
 			GROUP BY statename, date
 			ORDER BY date ASC
