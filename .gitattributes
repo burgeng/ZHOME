@@ -1,0 +1,2 @@
+*.js linguist-detectable=true
+src/** linguist-detectable=true
