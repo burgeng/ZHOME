@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Chart as ChartJS,
@@ -11,7 +12,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 
-// Register required components
+// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -23,19 +24,27 @@ ChartJS.register(
 );
 
 function ZORIChart({ data }) {
-  // Extract dates and ZORI values from the data
-  const labels = data.map((item) => item.date);
-  const zoriValues = data.map((item) => item.zori);
+  if (!data || !data.length) {
+    return <p>No data to display.</p>;
+  }
+
+  // Build labels and values safely
+  const labels = data.map(item =>
+    new Date(item.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short' })
+  );
+  const zoriValues = data.map(item =>
+    parseFloat(item.ZORI ?? item.zori ?? 0)
+  );
 
   const chartData = {
-    labels: labels, // x-axis labels
+    labels,
     datasets: [
       {
         label: 'Zillow Observed Rent Index (ZORI)',
-        data: zoriValues, // y-axis data
+        data: zoriValues,
         fill: false,
         borderColor: 'darkblue',
-        tension: 0.3, // smooth curve
+        tension: 0.3,
       },
     ],
   };
@@ -43,22 +52,24 @@ function ZORIChart({ data }) {
   const options = {
     responsive: true,
     plugins: {
-      legend: {
-        position: 'top',
+      legend: { position: 'top' },
+      title: { display: true, text: 'ZORI Trend' },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const val = context.parsed.y;
+            return `ZORI: ${val.toLocaleString()}`;
+          },
+        },
       },
     },
     scales: {
       x: {
-        title: {
-          display: true,
-          text: 'Date',
-        },
+        title: { display: true, text: 'Date' },
+        ticks: { maxTicksLimit: 12 },
       },
       y: {
-        title: {
-          display: true,
-          text: 'ZORI',
-        },
+        title: { display: true, text: 'ZORI (USD)' },
       },
     },
   };
@@ -67,3 +78,4 @@ function ZORIChart({ data }) {
 }
 
 export default ZORIChart;
+
