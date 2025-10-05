@@ -3,7 +3,7 @@ name: Validate API and React Frontend (Smoke Test)
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - "react-flask-app/**"
       - ".github/workflows/validate.yml"
