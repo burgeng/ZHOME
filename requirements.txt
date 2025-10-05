@@ -1,6 +1,7 @@
-flask
-numpy
-pandas
-numpy
-python-dotenv
-psycopg2-binary
+Flask==3.1.2
+mysql_connector_repackaged==0.3.1
+numpy==2.3.3
+pandas==2.3.3
+protobuf==6.32.1
+psycopg2==2.9.10
+pymysql==1.1.2
