@@ -34,6 +34,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r ../../requirements.txt
 
+      - name: Create .env file for API
+        run: |
+          echo "DATABASE_ENDPOINT=${{ secrets.DATABASE_ENDPOINT }}" >> react-flask-app/api/.env
+          echo "DATABASE_PORT=3306" >> react-flask-app/api/.env
+          echo "DATABASE_NAME=${{ secrets.DATABASE_NAME }}" >> react-flask-app/api/.env
+          echo "DATABASE_USER=${{ secrets.DATABASE_USER }}" >> react-flask-app/api/.env
+          echo "DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}" >> react-flask-app/api/.env
+
       - name: Start Flask API (background)
         run: |
           cd react-flask-app
