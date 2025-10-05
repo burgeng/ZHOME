@@ -1,20 +1,23 @@
-import React, { useState } from 'react';
+//
+import React, { useState } from 'react'; 
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+//
 import ZHVI from './pages/zhvi';
 import ZORI from './pages/zori';
 import ZHVF from './pages/zhvf';
 import MHI from './pages/mhi';
 import HomeSales from './pages/homesales'
 import NewConstruction from './pages/newConstructionSales';
-//import Sales from './pages/Sales';
 import './App.css';
+
 function App() {
 
   const [selectedLocalityType, setSelectedLocalityType] = useState('');
 
+  // Event handler 
   const handleLocalityTypeSelect = (type) => {
-    console.log('Selected locality type:', type); // Debugging
-    setSelectedLocalityType(type); // Update selected locality type
+    console.log('Selected locality type:', type); // Print for debugging 
+    setSelectedLocalityType(type); // Handle event: update the selected locality type (function defined above with useState() definition)
   };
 
   return (
@@ -59,18 +62,9 @@ function App() {
               </div>
             </div>
             <div className="dropdown">
-              <Link to="/homesales" className="nav-link">Home Sales</Link>
-              <div className="dropdown-menu">
-                {/* Pass in value of selectedLocalityType */}
-                <Link to="/homesales" onClick={() => handleLocalityTypeSelect('state')}>State</Link>
-                <Link to="/homesales" onClick={() => handleLocalityTypeSelect('metro')}>Metro</Link>
-              </div>
-            </div>
-            <div className="dropdown">
               <Link to="/newConstructionSales" className="nav-link">New Construction Sales</Link>
               <div className="dropdown-menu">
                 {/* Pass in value of selectedLocalityType */}
-                <Link to="/newConstructionSales" onClick={() => handleLocalityTypeSelect('state')}>State</Link>
                 <Link to="/newConstructionSales" onClick={() => handleLocalityTypeSelect('metro')}>Metro</Link>
               </div>
             </div>
@@ -86,7 +80,8 @@ function App() {
         </header>
         <main>
           <Routes>
-            {/* Pass selectedLocalityType to ZHVI */}
+            {/* Map paths to imported React components*/}
+            {/* Also pass the selectedLocalityType to the components*/}
             <Route path="/zhvi" element={<ZHVI localityType={selectedLocalityType} />} />
             <Route path="/zori" element={<ZORI localityType={selectedLocalityType} />} />
             <Route path="/zhvf" element={<ZHVF localityType={selectedLocalityType} />} />
