@@ -1,5 +1,6 @@
 from flask import Flask, request
 import mysql.connector
+from mysql.connector import pooling
 import os
 import psycopg2
 from dotenv import load_dotenv
@@ -20,12 +21,23 @@ print(f"Endpoint: {endpoint}\nPort: {port}\nDatabase name: {dbname}\nUser: {user
 #connection = sqlite3.connect(db_path, check_same_thread=False)
 #connection.row_factory = sqlite3.Row  # Optional: rows as dict-like objects
 
-connection = mysql.connector.connect(
-    host=endpoint,
+#connection = mysql.connector.connect(
+#    host=endpoint,
+#    port=port,
+#    user=user,
+#    password=password,
+#    database=dbname
+#)
+
+cnpool = pooling.MySQLConnectionPool(
+	host=endpoint,
     port=port,
     user=user,
     password=password,
-    database=dbname
+    database=dbname,
+    pool_name="mypool",
+    pool_size=10,
+    pool_reset_session=True,
 )
 
 @app.get("/") # Root
@@ -35,13 +47,13 @@ def index():
 @app.get("/checkdbconnection")
 def db_conn_check():
     try:
-        conn = connection
+        conn = cnpool.get_connection()
         cur = conn.cursor()
         cur.execute("SELECT 1;")  # simple check query
         cur.fetchone()
         conn.close()
         status = "Alive"
-    except sqlite3.Error as e:
+    except Exception as e:
         status = f"Dead ({e})"
     return {"Status": status}
 
@@ -58,6 +70,7 @@ def get_states_zhvi():
     if locality_type == "metro":
         locality_type = "msa"
 
+    connection = cnpool.get_connection()
     cur = connection.cursor()
 
     try:
@@ -82,6 +95,7 @@ def get_states_zhvi():
 
         cur.execute(query, (locality_type, limit, offset))
         rows = cur.fetchall()
+        print('Get localities ZHVI', rows)
 
         cur.execute(f"SELECT COUNT(DISTINCT regionid) FROM {table_name}")
         total_count = cur.fetchone()[0]
@@ -94,6 +108,9 @@ def get_states_zhvi():
         return response
     except Exception as e:
         return {"error": str(e)}, 500
+    finally:
+        if connection is not None and connection.is_connected():
+            connection.close()  # returns it to the pool
 
 @app.get("/get_localities_zori")
 def get_states_zori():
@@ -103,7 +120,8 @@ def get_states_zori():
 	offset = (page - 1) * limit  # Calculate OFFSET
 
 	table_name = "zori_processed_by_zori_{}_cleaned".format(locality_type)
-
+    
+	connection = cnpool.get_connection()
 	cursor = connection.cursor() 
 
 	if locality_type == "metro":
@@ -120,7 +138,7 @@ def get_states_zori():
 		'''
 		cursor.execute(query, (locality_type, limit, offset))
 		rows = cursor.fetchall()
-
+	
 		cursor.execute(f'SELECT COUNT(DISTINCT regionid) FROM {table_name}')
 		total_count = cursor.fetchone()[0]
 		response = {
@@ -130,6 +148,9 @@ def get_states_zori():
 		return response
 	except Exception as e:
 		return {"error": str(e)}, 500
+	finally:
+		if connection is not None and connection.is_connected():
+			connection.close()  # returns it to the pool
 
 @app.get("/get_localities_zhvf")
 def get_states_zhvf():
@@ -139,7 +160,8 @@ def get_states_zhvf():
 	offset = (page - 1) * limit  # Calculate OFFSET
 
 	table_name = "zhvf_by_zhvf_{}_cleaned".format(locality_type)
-
+    
+	connection = cnpool.get_connection()
 	cursor = connection.cursor() 
 
 	if locality_type == "metro":
@@ -156,6 +178,7 @@ def get_states_zhvf():
 		'''
 		cursor.execute(query, (locality_type, limit, offset))
 		rows = cursor.fetchall()
+		print(rows)
 
 		cursor.execute(f'SELECT COUNT(DISTINCT regionid) FROM {table_name}')
 		total_count = cursor.fetchone()[0]
@@ -166,145 +189,135 @@ def get_states_zhvf():
 		return response
 	except Exception as e:
 		return {"error": str(e)}, 500
+	finally:
+		if connection is not None and connection.is_connected():
+			connection.close()  # returns it to the pool
 
 @app.get("/get_localities_mhi")
-def get_states_mhi():
-	locality_type = request.args.get("type")
-	page = int(request.args.get("page", 1))  # Default to page 1
-	limit = int(request.args.get("limit", 10))  # Default to 10 records per page
-	offset = (page - 1) * limit  # Calculate OFFSET
+def get_localities_mhi():
+    locality_type = request.args.get("type")
+    page = int(request.args.get("page", 1))
+    limit = int(request.args.get("limit", 10))
+    offset = (page - 1) * limit
 
-	if locality_type == "metro":
-		locality_type = "msa"
-	rows=[]
-	total_count=0
+    if locality_type not in ["state", "county", "metro", "city", "zip", "neighborhood"]:
+        return {"error": "Invalid locality type"}, 400
 
-	cursor = connection.cursor() 
-	
-	try:
-		# We can't just access different tables here, so we will have to have different queries
-		if locality_type == 'msa':
-			query = f'''
-			SELECT DISTINCT regionname, statename
-			FROM mhi_processed_by_metro_cleaned mhi 
-				JOIN Regions_cleaned rc ON mhi.regionid = rc.regionid 
-			WHERE regiontype = %s
-			ORDER BY regionname ASC
-			LIMIT %s OFFSET %s
-			'''
-			cursor.execute(query, (locality_type, limit, offset))
-			rows = cursor.fetchall()
-			print(rows)
-			cursor.execute(f'SELECT COUNT(DISTINCT regionid) FROM mhi_processed_by_metro_cleaned')
-			total_count = cursor.fetchone()[0]
+    # Convert 'metro' to 'msa' 
+    if locality_type == "metro":
+        locality_type = "msa"
 
-		elif locality_type == 'state':
-			query = f'''
-			SELECT DISTINCT statename, statename
-			FROM mhi_processed_by_metro_cleaned mhi
-				JOIN Regions_cleaned rc ON mhi.regionid = rc.regionid
-			ORDER BY statename ASC
-			LIMIT %s OFFSET %s
-			'''
-			cursor.execute(query, (limit, offset))
-			rows = cursor.fetchall()
-			print(rows)
-			cursor.execute(f'SELECT COUNT(DISTINCT statename) FROM mhi_processed_by_metro_cleaned mhi JOIN "Regions_cleaned" rc ON mhi.regionid = rc.regionid ')
-			total_count = cursor.fetchone()[0]
-		response = {
-		"options": [{"regionname": row[0], "state": row[1]} for row in rows],  # Adjust based on your table structure
-		"totalPages": (total_count + limit - 1) // limit  # Calculate total pages
-		}
-	except Exception as e:
-		return {"error": str(e)}, 500
-	
-	return response
+    connection = cnpool.get_connection()
+    cursor = connection.cursor()
+    try:
+        if locality_type == "msa":
+            # --- METRO / MSA ---
+            query = """
+                SELECT DISTINCT rc.regionname, rc.statename
+                FROM mhi_processed_by_metro_cleaned mhi
+                JOIN Regions_cleaned rc ON mhi.regionid = rc.regionid
+                WHERE rc.regiontype = %s
+                ORDER BY rc.regionname ASC
+                LIMIT %s OFFSET %s
+            """
+            cursor.execute(query, (locality_type, limit, offset))
+            rows = cursor.fetchall()
 
-@app.get("/get_localities_sales")
-def get_states_sales():
-	locality_type = request.args.get("type")
-	page = int(request.args.get("page", 1))  # Default to page 1
-	limit = int(request.args.get("limit", 10))  # Default to 10 records per page
-	offset = (page - 1) * limit  # Calculate OFFSET
+            cursor.execute("""
+                SELECT COUNT(DISTINCT rc.regionid)
+                FROM mhi_processed_by_metro_cleaned mhi
+                JOIN Regions_cleaned rc ON mhi.regionid = rc.regionid
+                WHERE rc.regiontype = %s
+            """, (locality_type,))
+            total_count = cursor.fetchone()[0]
 
-	if locality_type == "metro":
-		locality_type = "msa"
+        elif locality_type == "state":
+            # --- STATE ---
+            query = """
+                SELECT DISTINCT rc.statename
+                FROM Regions_cleaned rc
+                WHERE rc.regiontype = 'state'
+                ORDER BY rc.statename ASC
+                LIMIT %s OFFSET %s
+            """
+            cursor.execute(query, (limit, offset))
+            rows = cursor.fetchall()
 
-	cursor = connection.cursor() 
+            cursor.execute("""
+                SELECT COUNT(DISTINCT rc.statename)
+                FROM Regions_cleaned rc
+                WHERE rc.regiontype = 'state'
+            """)
+            total_count = cursor.fetchone()[0]
 
-	try:
-		if locality_type == 'msa':
-			query = f'''
-			SELECT DISTINCT regionname, statename
-			FROM forsalelistings_processed_by_metro_cleaned sales 
-				JOIN Regions_cleaned rc ON sales.regionid = rc.regionid 
-			WHERE regiontype = '{locality_type}'
-			ORDER BY regionname ASC
-			LIMIT {limit} OFFSET {offset}
-			'''
-		elif locality_type == 'state':
-			query = f'''
-			SELECT DISTINCT statename, statename
-			FROM forsalelistings_processed_by_metro_cleaned sales
-				JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
-			ORDER BY statename ASC
-			LIMIT {limit} OFFSET {offset}
-			'''
-		cursor.execute(query)
-		rows = cursor.fetchall()
+        else:
+            return {"error": f"Locality type '{locality_type}' not implemented"}, 400
 
-		cursor.execute('SELECT COUNT(DISTINCT regionid) FROM forsalelistings_processed_by_metro_cleaned')
-		total_count = cursor.fetchone()[0]
-		response = {
-		"options": [{"regionname": row[0], "state": row[1]} for row in rows],  # Adjust based on your table structure
-		"totalPages": (total_count + limit - 1) // limit  # Calculate total pages
-		}
-		return response
-	except Exception as e:
-		return {"error": str(e)}, 500
+        # Build JSON response
+        # For states: first and second column are both the state abbrev
+        options = [{"regionname": r[0], "state": r[0]} for r in rows]
+
+        return {
+            "options": options,
+            "totalPages": (total_count + limit - 1) // limit
+        }
+
+    except Exception as e:
+        return {"error": str(e)}, 500
+    finally:
+        cursor.close()
+        connection.close()
 
 @app.get("/get_localities_newConstructionSales")
-def get_states_newConstructionSales():
-	locality_type = request.args.get("type")
-	page = int(request.args.get("page", 1))  # Default to page 1
-	limit = int(request.args.get("limit", 10))  # Default to 10 records per page
-	offset = (page - 1) * limit  # Calculate OFFSET
+def get_localities_newConstruction_sales():
+    locality_type = request.args.get("type")
+    if locality_type != "metro":
+        return {"error": "Only 'metro' is supported for new construction sales"}, 400
 
-	if locality_type == "metro":
-		locality_type = "msa"
+    # normalize to match Regions_cleaned
+    locality_type = "msa"
 
-	cursor = connection.cursor() 
+    page = int(request.args.get("page", 1))
+    limit = int(request.args.get("limit", 10))
+    offset = (page - 1) * limit
 
-	try:
-		if locality_type == 'msa':
-			query = f'''
-			SELECT DISTINCT regionname, statename
-			FROM newconsales_processed_by_metro_cleaned sales 
-				JOIN Regions_cleaned rc ON sales.regionid = rc.regionid 
-			WHERE regiontype = '{locality_type}'
-			ORDER BY regionname ASC
-			LIMIT {limit} OFFSET {offset}
-			'''
-		elif locality_type == 'state':
-			query = f'''
-			SELECT DISTINCT statename, statename
-			FROM newconsales_processed_by_metro_cleaned sales
-				JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
-			ORDER BY statename ASC
-			LIMIT {limit} OFFSET {offset}
-			'''
-		cursor.execute(query)
-		rows = cursor.fetchall()
+    table_name = "newconsales_processed_by_metro_cleaned"
 
-		cursor.execute('SELECT COUNT(DISTINCT regionid) FROM newconsales_processed_by_metro_cleaned')
-		total_count = cursor.fetchone()[0]
-		response = {
-		"options": [{"regionname": row[0], "state": row[1]} for row in rows],  # Adjust based on your table structure
-		"totalPages": (total_count + limit - 1) // limit  # Calculate total pages
-		}
-		return response
-	except Exception as e:
-		return {"error": str(e)}, 500
+    connection = cnpool.get_connection()
+    cur = connection.cursor()
+    try:
+        # ---- METRO / MSA ----
+        query = f"""
+            SELECT DISTINCT rc.regionname, rc.statename
+            FROM {table_name} sales
+            JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
+            WHERE rc.regiontype = %s
+            ORDER BY rc.regionname ASC
+            LIMIT %s OFFSET %s
+        """
+        cur.execute(query, (locality_type, limit, offset))
+        rows = cur.fetchall()
+
+        cur.execute(f"""
+            SELECT COUNT(DISTINCT rc.regionid)
+            FROM {table_name} sales
+            JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
+            WHERE rc.regiontype = %s
+        """, (locality_type,))
+        total_count = cur.fetchone()[0]
+
+        return {
+            "options": [{"regionname": r[0], "state": r[1]} for r in rows],
+            "totalPages": (total_count + limit - 1) // limit
+        }
+
+    except Exception as e:
+        print(e)
+        return {"error": str(e)}, 500
+    finally:
+        cur.close()
+        connection.close()
+
 
 
 #####
@@ -326,31 +339,36 @@ def get_zhvi():
 	if locality_type == 'metro':
 		locality_type = 'msa'
 
+	connection = cnpool.get_connection()
 	cursor = connection.cursor() 
 
 	print(locality_type)
-	if locality_type == 'state': # In this case, the statename columns are null
+	if locality_type == 'state':
 		query = f'''
 		SELECT date, regionname, regiontype, value AS ZHVI
 		FROM {table_name} zhvi
 		JOIN Regions_cleaned rc ON zhvi.regionid = rc.regionid
-		WHERE regionname = '{locality_name}' AND regiontype = '{locality_type}'
+		WHERE regionname = %s AND regiontype = %s
 		ORDER BY date ASC
 		'''
+		cursor.execute(query, (locality_name, locality_type))
+		rows = cursor.fetchall()
+		print("ZHVI Data: ", rows)
+		col_names = [desc[0] for desc in cursor.description]
+		result = [dict(zip(col_names, row)) for row in rows]
+		return result
 	else:
 		query = f'''
 			SELECT date, regionname, regiontype, value AS ZHVI
 			FROM {table_name} zhvi
 			JOIN Regions_cleaned rc ON zhvi.regionid = rc.regionid
-			WHERE regionname = '{locality_name}' AND regiontype = '{locality_type}' AND rc.statename = '{state_name}'
+			WHERE regionname = %s AND regiontype = %s AND rc.statename = %s
 			ORDER BY date ASC
 		'''
-		print(query)
-		cursor.execute(query)
+		cursor.execute(query, (locality_name, locality_type, state_name))
 		rows = cursor.fetchall()
-		# Get column names
+		print("ZHVI Data: ", rows)
 		col_names = [desc[0] for desc in cursor.description]
-		# Convert to list of dictionaries for JSON response
 		result = [dict(zip(col_names, row)) for row in rows]
 		return result
 
@@ -360,37 +378,37 @@ def get_zhvi():
 #####
 @app.get("/get_zori")
 def get_zori():
-	locality_type = request.args.get('type')
-	locality_name = request.args.get('name')
-	state_name = request.args.get('state')
-	
-	valid_locality_types = ['state', 'county', 'metro', 'city', 'zip', 'neighborhood']
-	if locality_type not in valid_locality_types:
-		return {"error": "Invalid locality type"}, 400
+    locality_type = request.args.get('type')
+    locality_name = request.args.get('name')
+    state_name = request.args.get('state')
 
-	table_name = "zori_processed_by_zori_{}_cleaned".format(locality_type)
+    valid_locality_types = ['state', 'county', 'metro', 'city', 'zip', 'neighborhood']
+    if locality_type not in valid_locality_types:
+        return {"error": "Invalid locality type"}, 400
 
-	if locality_type == 'metro':
-		locality_type = 'msa'
+    table_name = f"zori_processed_by_zori_{locality_type}_cleaned"
+    if locality_type == 'metro':
+        locality_type = 'msa'
 
-	cursor = connection.cursor() 
+    connection = cnpool.get_connection()
+    cursor = connection.cursor()
+    try:
+        query = f'''
+            SELECT date, regionname, regiontype, value AS ZORI
+            FROM {table_name} zori
+            JOIN Regions_cleaned rc ON zori.regionid = rc.regionid
+            WHERE regionname = %s AND regiontype = %s AND statename = %s
+            ORDER BY date ASC
+        '''
+        cursor.execute(query, (locality_name, locality_type, state_name))
+        rows = cursor.fetchall()
+        col_names = [desc[0] for desc in cursor.description]
+        result = [dict(zip(col_names, row)) for row in rows]
+        return result
+    finally:
+        cursor.close()
+        connection.close()   # <-- returns to pool
 
-	print(table_name)
-	query = f'''
-		SELECT date, regionname, regiontype, value AS ZORI
-		FROM {table_name} zori
-		JOIN Regions_cleaned rc ON zori.regionid = rc.regionid
-		WHERE regionname = '{locality_name}' AND regiontype = '{locality_type}' AND statename = '{state_name}'
-		ORDER BY date ASC
-	'''
-	print(query)
-	cursor.execute(query)
-	rows = cursor.fetchall()
-	# Get column names
-	col_names = [desc[0] for desc in cursor.description]
-	# Convert to list of dictionaries for JSON response
-	result = [dict(zip(col_names, row)) for row in rows]
-	return result
 
 #####
 # Get ZHVF data by locality type and name
@@ -398,36 +416,39 @@ def get_zori():
 #####
 @app.get("/get_zhvf")
 def get_zhvf():
-	locality_type = request.args.get('type')
-	locality_name = request.args.get('name')
-	
-	valid_locality_types = ['state', 'county', 'metro', 'city', 'zip', 'neighborhood']
-	if locality_type not in valid_locality_types:
-		return {"error": "Invalid locality type"}, 400
+    locality_type = request.args.get('type')
+    locality_name = request.args.get('name')
 
-	table_name = "zhvf_by_zhvf_{}_cleaned".format(locality_type)
+    valid_locality_types = ['state', 'county', 'metro', 'city', 'zip', 'neighborhood']
+    if locality_type not in valid_locality_types:
+        return {"error": "Invalid locality type"}, 400
 
-	if locality_type == 'metro':
-		locality_type = 'msa'
+    # Build table name
+    table_name = f"zhvf_by_zhvf_{locality_type}_cleaned"
+    if locality_type == 'metro':
+        locality_type = 'msa'
 
-	cursor = connection.cursor() 
+    # --- FIX: get a pooled connection and ensure it is always released ---
+    connection = cnpool.get_connection()
+    cursor = connection.cursor()
+    try:
+        query = f'''
+            SELECT month, quarter, year
+            FROM {table_name} zhvf
+            JOIN Regions_cleaned rc ON zhvf.regionid = rc.regionid
+            WHERE regionname = %s AND regiontype = %s
+            ORDER BY basedate ASC
+        '''
+        cursor.execute(query, (locality_name, locality_type))
+        rows = cursor.fetchall()
 
-	query = f'''
-		SELECT month, quarter, year
-		FROM {table_name} zhvf
-		JOIN Regions_cleaned rc ON zhvf.regionid = rc.regionid
-		WHERE regionname = '{locality_name}' AND regiontype = '{locality_type}'
-		ORDER BY basedate ASC
-	'''
-	print(query)
-	cursor.execute(query)
-	rows = cursor.fetchall()
-	# Get column names
-	col_names = [desc[0] for desc in cursor.description]
-	# Convert to list of dictionaries for JSON response
-	result = [dict(zip(col_names, row)) for row in rows]
-	print(result)
-	return result
+        col_names = [desc[0] for desc in cursor.description]
+        result = [dict(zip(col_names, row)) for row in rows]
+
+        return result
+    finally:
+        cursor.close()
+        connection.close() 
 
 #####
 # Get MHI data by locality type and name
@@ -445,6 +466,7 @@ def get_mhi():
 	if locality_type == 'metro':
 		locality_type == 'msa'
 
+	connection = cnpool.get_connection()
 	cursor = connection.cursor() 
 
 	if locality_type == 'metro':
@@ -468,6 +490,7 @@ def get_mhi():
 	print(query)
 	cursor.execute(query)
 	rows = cursor.fetchall()
+	print(rows)
 	# Get column names
 	col_names = [desc[0] for desc in cursor.description]
 	# Convert to list of dictionaries for JSON response
@@ -489,6 +512,7 @@ def get_homesales():
 	if locality_type == 'metro':
 		locality_type == 'msa'
 
+	connection = cnpool.get_connection()
 	cursor = connection.cursor() 
 
 	if locality_type == 'metro':
@@ -512,6 +536,7 @@ def get_homesales():
 	print(query)
 	cursor.execute(query)
 	rows = cursor.fetchall()
+	print(rows)
 	# Get column names
 	col_names = [desc[0] for desc in cursor.description]
 	# Convert to list of dictionaries for JSON response
@@ -533,6 +558,7 @@ def get_newConstructionSales():
 	if locality_type == 'metro':
 		locality_type == 'msa'
 	
+	connection = cnpool.get_connection()
 	cursor = connection.cursor() 
 
 	if locality_type == 'metro':
@@ -556,6 +582,7 @@ def get_newConstructionSales():
 	print(query)
 	cursor.execute(query)
 	rows = cursor.fetchall()
+	print(rows)
 	# Get column names
 	col_names = [desc[0] for desc in cursor.description]
 	# Convert to list of dictionaries for JSON response
