@@ -1,13 +1,13 @@
-# Count all JS/JSX files
+# Count your source JS and JSX
 *.js linguist-detectable=true
 *.jsx linguist-detectable=true
 
-# Explicitly mark your source folder as detectable
-react-flask-app/src/* linguist-detectable=true
-
-# (If you have nested folders under src/)
-react-flask-app/src/** linguist-detectable=true
-
-# If GitHub still thinks they're vendored/generated, clear those flags
+# Make sure they're NOT considered vendored/generated
 *.js -linguist-vendored -linguist-generated
 *.jsx -linguist-vendored -linguist-generated
+
+# Ignore icons and docs
+*.svg linguist-documentation
+
+react-flask-app/src/* linguist-detectable=true
+react-flask-app/src/** linguist-detectable=true
