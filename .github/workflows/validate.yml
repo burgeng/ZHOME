@@ -7,11 +7,13 @@ on:
     paths:
       - "react-flask-app/**"
       - ".github/workflows/validate.yml"
+      - "requirements.txt"
 
   pull_request:
     paths:
       - "react-flask-app/**"
       - ".github/workflows/validate.yml"
+      - "requirements.txt"
 
 jobs:
   validate:
