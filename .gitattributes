@@ -1,2 +1,13 @@
+# Count your source JS and JSX
 *.js linguist-detectable=true
+*.jsx linguist-detectable=true
+
+# Make sure they're NOT considered vendored/generated
+*.js -linguist-vendored -linguist-generated
+*.jsx -linguist-vendored -linguist-generated
+
+# Ignore icons and docs
+*.svg linguist-documentation
+
+react-flask-app/src/* linguist-detectable=true
 react-flask-app/src/** linguist-detectable=true
