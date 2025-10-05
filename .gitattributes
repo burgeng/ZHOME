@@ -1,2 +1,2 @@
 *.js linguist-detectable=true
-src/** linguist-detectable=true
+react-flask-app/src/** linguist-detectable=true

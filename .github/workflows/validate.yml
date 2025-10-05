@@ -1,4 +1,4 @@
-#
+
 name: Validate API and React Frontend (Smoke Test)
 
 on:
@@ -7,11 +7,13 @@ on:
     paths:
       - "react-flask-app/**"
       - ".github/workflows/validate.yml"
+      - "requirements.txt"
 
   pull_request:
     paths:
       - "react-flask-app/**"
       - ".github/workflows/validate.yml"
+      - "requirements.txt"
 
 jobs:
   validate:
@@ -26,13 +28,21 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.12"
 
       - name: Install backend dependencies
         run: |
           cd react-flask-app/api
           python -m pip install --upgrade pip
           pip install -r ../../requirements.txt
+
+      - name: Create .env file for API
+        run: |
+          echo "DATABASE_ENDPOINT=${{ secrets.DATABASE_ENDPOINT }}" >> react-flask-app/api/.env
+          echo "DATABASE_PORT=3306" >> react-flask-app/api/.env
+          echo "DATABASE_NAME=${{ secrets.DATABASE_NAME }}" >> react-flask-app/api/.env
+          echo "DATABASE_USER=${{ secrets.DATABASE_USER }}" >> react-flask-app/api/.env
+          echo "DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}" >> react-flask-app/api/.env
 
       - name: Start Flask API (background)
         run: |
