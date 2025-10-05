@@ -1,8 +1,9 @@
+#
 name: Validate API and React Frontend (Smoke Test)
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - "react-flask-app/**"
       - ".github/workflows/validate.yml"
@@ -31,7 +32,7 @@ jobs:
         run: |
           cd react-flask-app/api
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r ../../requirements.txt
 
       - name: Start Flask API (background)
         run: |
