@@ -1,0 +1,60 @@
+name: Validate API and React Frontend (Smoke Test)
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "react-flask-app/**"
+      - ".github/workflows/validate.yml"
+
+  pull_request:
+    paths:
+      - "react-flask-app/**"
+      - ".github/workflows/validate.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      # --- Checkout code ---
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --- Backend (Flask API) ---
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install backend dependencies
+        run: |
+          cd react-flask-app/api
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Start Flask API (background)
+        run: |
+          cd react-flask-app
+          yarn start-api &
+          sleep 8
+          curl -f http://127.0.0.1:5000/ || (echo "API did not respond" && exit 1)
+
+      # --- Frontend (React dev server) ---
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        run: |
+          cd react-flask-app
+          yarn install --frozen-lockfile
+
+      - name: Start React dev server (background)
+        run: |
+          cd react-flask-app
+          yarn start &
+          # React dev server can take a bit longer to spin up
+          sleep 25
+          curl -f http://127.0.0.1:3000/ || (echo "Frontend did not respond" && exit 1)
