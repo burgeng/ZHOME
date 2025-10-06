@@ -1,3 +1,9 @@
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![Flask](https://img.shields.io/badge/Flask-2.3-green)
+![React](https://img.shields.io/badge/React-18.2-blue)
+![MySQL](https://img.shields.io/badge/MySQL-8-orange)
+![AWS](https://img.shields.io/badge/AWS-EC2%20|%20RDS-yellow)
+![Nginx](https://img.shields.io/badge/Nginx-reverse%20proxy-brightgreen)
 # Zillow Housing Overview and Market Explorer (ZHOME)
 Easily explore housing market data from [Zillow](https://www.zillow.com/research/data/).
 
@@ -9,9 +15,3 @@ Easily explore housing market data from [Zillow](https://www.zillow.com/research
 ### Zillow Home Value Forecast
 <img src="react-flask-app/public/zhvf.gif" width="750" alt="Demo GIF">
 
-## Implementation
-Frontend: React (create-react-app), Chart.js \
-Backend: Python (Flask, Gunicorn) \
-Database: MySQL (AWS RDS) \
-Infrastructure: Nginx reverse proxy, Let’s Encrypt SSL, Ubuntu 22.04 on AWS EC2 \
-DevOps: GitHub Actions CI/CD, Certbot for auto-renewal 
