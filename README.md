@@ -14,4 +14,4 @@ Frontend: React (create-react-app), Chart.js \
 Backend: Python (Flask, Gunicorn) \
 Database: MySQL (AWS RDS) \
 Infrastructure: Nginx reverse proxy, Let’s Encrypt SSL, Ubuntu 22.04 on AWS EC2 \
-DevOps: GitHub Actions CI/CD, Certbot for auto-renewal \
+DevOps: GitHub Actions CI/CD, Certbot for auto-renewal 
