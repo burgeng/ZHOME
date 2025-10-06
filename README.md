@@ -8,3 +8,10 @@ Easily explore housing market data from [Zillow](https://www.zillow.com/research
 
 ### Zillow Home Value Forecast
 <img src="react-flask-app/public/zhvf.gif" width="750" alt="Demo GIF">
+
+## Implementation
+Frontend: React (create-react-app), Chart.js \
+Backend: Python (Flask, Gunicorn) \
+Database: MySQL (AWS RDS) \
+Infrastructure: Nginx reverse proxy, Let’s Encrypt SSL, Ubuntu 22.04 on AWS EC2 \
+DevOps: GitHub Actions CI/CD, Certbot for auto-renewal \
