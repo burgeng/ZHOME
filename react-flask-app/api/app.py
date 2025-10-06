@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
 import mysql.connector
 from mysql.connector import pooling
 import os
@@ -7,7 +7,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_folder="../build",
+    static_url_path="/"
+)
 
 endpoint = os.getenv("DATABASE_ENDPOINT")
 port = int(os.getenv("DATABASE_PORT"))
@@ -39,10 +43,6 @@ cnpool = pooling.MySQLConnectionPool(
     pool_size=10,
     pool_reset_session=True,
 )
-
-@app.get("/") # Root
-def index():
-    return "ZHOME: The Zillow Housing Overview and Market Explorer"
 
 @app.get("/checkdbconnection")
 def db_conn_check():
@@ -111,6 +111,7 @@ def get_states_zhvi():
     finally:
         if connection is not None and connection.is_connected():
             connection.close()  # returns it to the pool
+            cur.close()
 
 @app.get("/get_localities_zori")
 def get_states_zori():
@@ -151,6 +152,7 @@ def get_states_zori():
 	finally:
 		if connection is not None and connection.is_connected():
 			connection.close()  # returns it to the pool
+			cursor.close()
 
 @app.get("/get_localities_zhvf")
 def get_states_zhvf():
@@ -192,6 +194,7 @@ def get_states_zhvf():
 	finally:
 		if connection is not None and connection.is_connected():
 			connection.close()  # returns it to the pool
+			cursor.close()
 
 @app.get("/get_localities_mhi")
 def get_localities_mhi():
@@ -343,34 +346,41 @@ def get_zhvi():
 	cursor = connection.cursor() 
 
 	print(locality_type)
-	if locality_type == 'state':
-		query = f'''
-		SELECT date, regionname, regiontype, value AS ZHVI
-		FROM {table_name} zhvi
-		JOIN Regions_cleaned rc ON zhvi.regionid = rc.regionid
-		WHERE regionname = %s AND regiontype = %s
-		ORDER BY date ASC
-		'''
-		cursor.execute(query, (locality_name, locality_type))
-		rows = cursor.fetchall()
-		print("ZHVI Data: ", rows)
-		col_names = [desc[0] for desc in cursor.description]
-		result = [dict(zip(col_names, row)) for row in rows]
-		return result
-	else:
-		query = f'''
+	try:
+		if locality_type == 'state':
+			query = f'''
 			SELECT date, regionname, regiontype, value AS ZHVI
 			FROM {table_name} zhvi
 			JOIN Regions_cleaned rc ON zhvi.regionid = rc.regionid
-			WHERE regionname = %s AND regiontype = %s AND rc.statename = %s
+			WHERE regionname = %s AND regiontype = %s
 			ORDER BY date ASC
-		'''
-		cursor.execute(query, (locality_name, locality_type, state_name))
-		rows = cursor.fetchall()
-		print("ZHVI Data: ", rows)
-		col_names = [desc[0] for desc in cursor.description]
-		result = [dict(zip(col_names, row)) for row in rows]
-		return result
+			'''
+			cursor.execute(query, (locality_name, locality_type))
+			rows = cursor.fetchall()
+			print("ZHVI Data: ", rows)
+			col_names = [desc[0] for desc in cursor.description]
+			result = [dict(zip(col_names, row)) for row in rows]
+			return result
+		else:
+			query = f'''
+				SELECT date, regionname, regiontype, value AS ZHVI
+				FROM {table_name} zhvi
+				JOIN Regions_cleaned rc ON zhvi.regionid = rc.regionid
+				WHERE regionname = %s AND regiontype = %s AND rc.statename = %s
+				ORDER BY date ASC
+			'''
+			cursor.execute(query, (locality_name, locality_type, state_name))
+			rows = cursor.fetchall()
+			print("ZHVI Data: ", rows)
+			col_names = [desc[0] for desc in cursor.description]
+			result = [dict(zip(col_names, row)) for row in rows]
+			return result
+	except Exception as e:
+		print(e)
+		return {"error": str(e)}, 500
+	finally:
+		cursor.close()
+		connection.close()   # <-- returns to pool
 
 #####
 # Get ZORI data by locality type and name
@@ -463,39 +473,43 @@ def get_mhi():
 	if locality_type not in valid_locality_types:
 		return {"error": "Invalid locality type"}, 400
 
-	if locality_type == 'metro':
-		locality_type == 'msa'
-
 	connection = cnpool.get_connection()
 	cursor = connection.cursor() 
 
-	if locality_type == 'metro':
-		query = f'''
-			SELECT rc.regionname, date, value AS mhi
-			FROM mhi_processed_by_metro_cleaned mhi
-			JOIN Regions_cleaned rc ON mhi.regionid = rc.regionid
-			WHERE regionname= '{locality_name}'
-			ORDER BY date ASC
-		'''
-	# Since there is only a metro table for MHI, we can estimate the by-State values by averaging values for all metros in a state using a GROUP BY clause with AVG()
-	elif locality_type == 'state':
-		query = f'''
-			SELECT statename, date, AVG(CAST(value AS float)) AS mhi
-			FROM mhi_processed_by_metro_cleaned mhi
-			JOIN Regions_cleaned rc ON mhi.regionid = rc.regionid
-			WHERE statename = '{locality_name}'
-			GROUP BY statename, date
-			ORDER BY date ASC
-		'''
-	print(query)
-	cursor.execute(query)
-	rows = cursor.fetchall()
-	print(rows)
-	# Get column names
-	col_names = [desc[0] for desc in cursor.description]
-	# Convert to list of dictionaries for JSON response
-	result = [dict(zip(col_names, row)) for row in rows]
-	return result
+	try:
+		if locality_type == 'metro':
+			query = f'''
+				SELECT rc.regionname, date, value AS mhi
+				FROM mhi_processed_by_metro_cleaned mhi
+				JOIN Regions_cleaned rc ON mhi.regionid = rc.regionid
+				WHERE regionname= '{locality_name}'
+				ORDER BY date ASC
+			'''
+		# Since there is only a metro table for MHI, we can estimate the by-State values by averaging values for all metros in a state using a GROUP BY clause with AVG()
+		elif locality_type == 'state':
+			query = f'''
+				SELECT statename, date, AVG(CAST(value AS float)) AS mhi
+				FROM mhi_processed_by_metro_cleaned mhi
+				JOIN Regions_cleaned rc ON mhi.regionid = rc.regionid
+				WHERE statename = '{locality_name}'
+				GROUP BY statename, date
+				ORDER BY date ASC
+			'''
+		print(query)
+		cursor.execute(query)
+		rows = cursor.fetchall()
+		print(rows)
+		# Get column names
+		col_names = [desc[0] for desc in cursor.description]
+		# Convert to list of dictionaries for JSON response
+		result = [dict(zip(col_names, row)) for row in rows]
+		return result
+	except Exception as e:
+		print(e)
+		return {"error": str(e)}, 500
+	finally:
+		cursor.close()
+		connection.close()   # <-- returns to pool
 
 #####
 # Get home sale count data by locality type and name
@@ -509,39 +523,43 @@ def get_homesales():
 	if locality_type not in valid_locality_types:
 		return {"error": "Invalid locality type"}, 400
 
-	if locality_type == 'metro':
-		locality_type == 'msa'
-
 	connection = cnpool.get_connection()
 	cursor = connection.cursor() 
 
-	if locality_type == 'metro':
-		query = f'''
-			SELECT rc.regionname, date, value AS count
-			FROM forsalelistings_processed_by_metro_cleaned sales
-			JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
-			WHERE regionname= '{locality_name}'
-			ORDER BY date ASC
-			'''
-	# Similar to above, get average home sales for all metros in a state
-	elif locality_type == 'state':
-		query = f'''
-			SELECT statename, date, AVG(CAST(value AS float)) AS count
-			FROM forsalelistings_processed_by_metro_cleaned sales
-			JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
-			WHERE statename = '{locality_name}'
-			GROUP BY statename, date
-			ORDER BY date ASC
-			'''
-	print(query)
-	cursor.execute(query)
-	rows = cursor.fetchall()
-	print(rows)
-	# Get column names
-	col_names = [desc[0] for desc in cursor.description]
-	# Convert to list of dictionaries for JSON response
-	result = [dict(zip(col_names, row)) for row in rows]
-	return result
+	try:
+		if locality_type == 'metro':
+			query = f'''
+				SELECT rc.regionname, date, value AS count
+				FROM forsalelistings_processed_by_metro_cleaned sales
+				JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
+				WHERE regionname= '{locality_name}'
+				ORDER BY date ASC
+				'''
+		# Similar to above, get average home sales for all metros in a state
+		elif locality_type == 'state':
+			query = f'''
+				SELECT statename, date, AVG(CAST(value AS float)) AS count
+				FROM forsalelistings_processed_by_metro_cleaned sales
+				JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
+				WHERE statename = '{locality_name}'
+				GROUP BY statename, date
+				ORDER BY date ASC
+				'''
+		print(query)
+		cursor.execute(query)
+		rows = cursor.fetchall()
+		print(rows)
+		# Get column names
+		col_names = [desc[0] for desc in cursor.description]
+		# Convert to list of dictionaries for JSON response
+		result = [dict(zip(col_names, row)) for row in rows]
+		return result
+	except Exception as e:
+		print(e)
+		return {"error": str(e)}, 500
+	finally:
+		cursor.close()
+		connection.close()   # <-- returns to pool
 
 #####
 # Get new construction sale count data by locality type and name
@@ -554,38 +572,51 @@ def get_newConstructionSales():
 	valid_locality_types = ['state', 'metro']
 	if locality_type not in valid_locality_types:
 		return {"error": "Invalid locality type"}, 400
-
-	if locality_type == 'metro':
-		locality_type == 'msa'
 	
 	connection = cnpool.get_connection()
 	cursor = connection.cursor() 
 
-	if locality_type == 'metro':
-		query = f'''
-			SELECT rc.regionname, date, value AS count
-			FROM newconsales_processed_by_metro_cleaned sales
-			JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
-			WHERE regionname= '{locality_name}'
-			ORDER BY date ASC
-			'''
-	# Similar to above, get average home sales for all metros in a state
-	elif locality_type == 'state':
-		query = f'''
-			SELECT statename, date, AVG(CAST(value AS float)) AS count
-			FROM newconsales_processed_by_metro_cleaned sales
-			JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
-			WHERE statename = '{locality_name}'
-			GROUP BY statename, date
-			ORDER BY date ASC
-			'''
-	print(query)
-	cursor.execute(query)
-	rows = cursor.fetchall()
-	print(rows)
-	# Get column names
-	col_names = [desc[0] for desc in cursor.description]
-	# Convert to list of dictionaries for JSON response
-	result = [dict(zip(col_names, row)) for row in rows]
-	return result
+	try:
+		if locality_type == 'metro':
+			query = f'''
+				SELECT rc.regionname, date, value AS count
+				FROM newconsales_processed_by_metro_cleaned sales
+				JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
+				WHERE regionname= '{locality_name}'
+				ORDER BY date ASC
+				'''
+		# Similar to above, get average home sales for all metros in a state
+		elif locality_type == 'state':
+			query = f'''
+				SELECT statename, date, AVG(CAST(value AS float)) AS count
+				FROM newconsales_processed_by_metro_cleaned sales
+				JOIN Regions_cleaned rc ON sales.regionid = rc.regionid
+				WHERE statename = '{locality_name}'
+				GROUP BY statename, date
+				ORDER BY date ASC
+				'''
+		print(query)
+		cursor.execute(query)
+		rows = cursor.fetchall()
+		print(rows)
+		# Get column names
+		col_names = [desc[0] for desc in cursor.description]
+		# Convert to list of dictionaries for JSON response
+		result = [dict(zip(col_names, row)) for row in rows]
+		return result
+	except Exception as e:
+		print(e)
+		return {"error": str(e)}, 500
+	finally:
+		cursor.close()
+		connection.close()   # <-- returns to pool
 
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve(path):
+    """
+	Serve static files from the built directory
+    """
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    return send_from_directory(app.static_folder, "index.html")
